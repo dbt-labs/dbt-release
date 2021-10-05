@@ -23,4 +23,4 @@ jobs:
         with:
           token: ${{ secrets.DBT_TEST_API_TOKEN }}
           event-type: version-bump
-          client-payload: '{"version_number": "${{ version_number }}", "is_dry_run": "${{ is_dry_run }}"}'
+          client-payload: '{"version_number": "${{ env.version_number }}", "is_dry_run": "${{ env.is_dry_run }}"}'
