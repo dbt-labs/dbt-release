@@ -1,0 +1,26 @@
+# Bumps the version in all dbt core/adapter repos
+
+name: Version Bump All
+
+# Controls when the workflow will run
+on:
+  workflow_dispatch:
+  
+# Release version number that must be updated for each release
+# If you want to test out Action, set is_dry_run to True and 
+# nothing will be committed (PRs will instead be created)
+env:
+  version_number: '0.21.6'
+  is_dry_run: true 
+
+jobs:
+  bump-core:
+    name: 'Bump dbt-core'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.DBT_GITHUB_API_TOKEN }}
+          event-type: version-bump
+          client-payload: '{"version_number": "${{ version_number }}", "is_dry_run": "${{ is_dry_run }}"}'
