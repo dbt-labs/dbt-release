@@ -10,7 +10,7 @@ on:
 # If you want to test out Action, set is_dry_run to True and 
 # nothing will be committed (PRs will instead be created)
 env:
-  version_number: '0.21.6'
+  version_number: '0.23.0'
   is_dry_run: true 
 
 jobs:
