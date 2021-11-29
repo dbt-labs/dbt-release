@@ -17,7 +17,7 @@ def make_post(release: ReleaseFile):
     if release.is_prerelease:
         data["prerelease"] = True
     request = Request(
-        url="https://api.github.com/repos/dbt-labs/dbt/releases",
+        url="https://api.github.com/repos/dbt-labs/dbt-core/releases",
         headers={
             "Content-Type": "application/json",
             "Authorization": f"token {GITHUB_API_TOKEN}",
