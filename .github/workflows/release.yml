@@ -1,0 +1,57 @@
+name: Release package
+
+on:
+  workflow_dispatch:
+    inputs:
+      inputValidationStrategy:
+        description: Pick how to validate inputs
+        required: true
+        type: choice
+        default: sequential
+        options:
+          - sequential
+          - all-at-once
+      commitSHA:
+        description: Commit to release
+        required: true
+        type: string
+        default: ""
+      packageVersion:
+        description: Version to release
+        required: true
+        type: string
+        default: ""
+
+jobs:
+  check-input-data:
+    uses: alexander-smolyakov/dbt-release/.github/workflows/release_pre_checks.yml@master
+    with:
+      commitSHA: ${{ github.event.inputs.commitSHA }}
+      packageVersion: ${{ github.event.inputs.packageVersion }}
+      continueOnError: ${{ github.event.inputs.inputValidationStrategy == 'all-at-once' }}
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    needs: check-input-data
+    steps:
+      - name: Run ${{ github.job }}
+        run: |
+          echo "Place holder for ${{ github.job }}"
+
+  generate-changelog-and-release-branch:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - name: Run ${{ github.job }}
+        run: |
+          echo "Place holder for ${{ github.job }}"
+
+  publish-stage:
+    runs-on: ubuntu-latest
+    needs: generate-changelog-and-release-branch
+    steps:
+      - name: Run ${{ github.job }}
+        run: |
+          echo "Place holder for ${{ github.job }}"

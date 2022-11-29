@@ -1,0 +1,144 @@
+# **what?**
+# This workflow will validate inputs that are required for release. Before we kick-off the release proccess
+# we have to be sure that there will be no issues with provided data.
+
+# **why?**
+# There are no options to validate inputs before runtime. The main idea is to prevent issues that could occur
+# during further stages of the release process because of incorrect inputs.
+
+# **When?**
+# Can be launched from another workflow or manually by demand
+
+name: Pre-release checks
+
+on:
+  workflow_call:
+    inputs:
+      commitSHA:
+        description: Commit to release
+        required: true
+        type: string
+        default: ""
+      packageVersion:
+        description: Version to release
+        required: true
+        type: string
+        default: ""
+      continueOnError:
+        description: Validation will continue even some check failed
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      token:
+        required: true
+
+  workflow_dispatch:
+    inputs:
+      commitSHA:
+        description: Commit to release
+        required: true
+        type: string
+        default: ""
+      packageVersion:
+        description: Version to release
+        required: true
+        type: string
+        default: ""
+      continueOnError:
+        description: Validation will continue even some check failed
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  validate-input-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "[DEBUG] Print Variables"
+        run: |
+          echo "all variables defined as inputs"
+          echo "The last commit sha in the release: ${{ inputs.commitSHA }}"
+          echo "The release version number:         ${{ inputs.packageVersion }}"
+
+      # Step: Check that commit exits via GH API
+      # Description: Check that the specified commit exists and we can use it for release.
+      # Also, fetch info about commit for a detailed status report.
+      # GH API doc: https://docs.github.com/en/rest/git/commits?apiVersion=2022-11-28#get-a-commit
+      - name: Validation - Commit exist (${{ inputs.commitSHA }})
+        id: commit-data
+        uses: actions/github-script@v6
+        continue-on-error: ${{ inputs.continueOnError }}
+        with:
+          result-encoding: string
+          retries: 3
+          retry-exempt-status-codes: 400,401
+          script: |
+            const result = await github.rest.git.getCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: '${{ inputs.commitSHA }}'
+            });
+            const data = `Author: ${result.data.author.name}\nMessage: ${result.data.message}\nSHA: ${result.data.sha}\nCommit url: ${result.data.html_url}`;
+            console.log(data);
+            return data;
+
+      # Step: Validate version for release
+      # Description: Check that the specified version can be used for release via in-house GitHub action.
+      # Continue on error: True. We want to validate all inputs at once if there are several incorrect inputs.
+      # Link to GH action: https://github.com/dbt-labs/actions/tree/main/parse-semver
+      - name: Validation - Version audit (${{ inputs.packageVersion }})
+        id: package-version-data
+        uses: dbt-labs/actions/parse-semver@v1
+        continue-on-error: ${{ inputs.continueOnError }}
+        with:
+          version: ${{ inputs.packageVersion }}
+
+      # Step: Display summary of data gather during validation
+      # Description: Debug step to check that everything works fine
+      - name: Validation - Summary
+        run: |
+          echo "::group::Steps status"
+          echo commit-data: ${{ steps.commit-data.outcome }}
+          echo package-version-data: ${{ steps.package-version-data.outcome }}
+
+          echo "::endgroup::"
+          echo "::group::Commit data"
+          echo "${{ steps.commit-data.outputs.result }}"
+          echo "::endgroup::"
+
+          echo "::group::Version data"
+          echo version: ${{ steps.package-version-data.outputs.version }}
+          echo base-version: ${{ steps.package-version-data.outputs.base-version }}
+          echo major: ${{ steps.package-version-data.outputs.major }}
+          echo minor: ${{ steps.package-version-data.outputs.minor }}
+          echo patch: ${{ steps.package-version-data.outputs.patch }}
+          echo pre-release: ${{ steps.package-version-data.outputs.pre-release }}
+          echo pre-release-version: ${{ steps.package-version-data.outputs.pre-release-version }}
+          echo pre-release-type: ${{ steps.package-version-data.outputs.pre-release-type }}
+          echo is-pre-release: ${{ steps.package-version-data.outputs.is-pre-release }}
+          echo "::endgroup::"
+
+      # Step: Checks steps outcome
+      # Condition: Will run only if continue on error set to `true`
+      # Description: Checks steps status, fail stage if some steps were failed
+      # We need to use outcome instead of conclusion since the usage of `continue-on-error` will override the final conclusion from `failure` to `success`
+      # Related doc: https://docs.github.com/en/actions/learn-github-actions/contexts#steps-context
+      - name: Validation - Steps statuses
+        if: ${{ inputs.continueOnError }}
+        run: |
+          should_stage_fail=false
+          if [ "${{ steps.commit-data.outcome }}" = "failure" ]
+          then
+            should_stage_fail=true
+            echo "::warning title=Commit exist check failed::Step finished with failure outcome, please investigate"
+          fi
+          if [ "${{ steps.package-version-data.outcome }}" = "failure" ] 
+          then
+            should_stage_fail=true
+            echo "::warning title=Version audit check failed::Step finished with failure outcome, please investigate"
+          fi
+          if [ "$should_stage_fail" = true ] 
+          then
+            exit 1
+          fi
