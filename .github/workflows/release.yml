@@ -24,7 +24,7 @@ on:
 
 jobs:
   check-input-data:
-    uses: alexander-smolyakov/dbt-release/.github/workflows/release_pre_checks.yml@master
+    uses: dbt-labs/dbt-release/.github/workflows/release_pre_checks.yml@master
     with:
       commitSHA: ${{ github.event.inputs.commitSHA }}
       packageVersion: ${{ github.event.inputs.packageVersion }}
