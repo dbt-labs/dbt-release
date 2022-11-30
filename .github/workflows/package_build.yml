@@ -1,0 +1,79 @@
+name: Build package
+
+on:
+  workflow_call:
+    inputs:
+      commitSHA:
+        description: Target commit
+        required: true
+        type: string
+      buildScriptPath:
+        description: Path to build scripts
+        required: true
+        type: string
+
+      usePythonVersion:
+        description: Set Python version for test
+        required: true
+        type: string
+
+      artifactName:
+        description: Build artifact name
+        required: true
+        type: string
+      artifactPath:
+        description: Path to download arifact
+        required: true
+        type: string
+      arifactRetentionDays:
+        description: How long keep artifact
+        required: true
+        type: number
+    secrets:
+      token:
+        required: true
+
+jobs:
+  build-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: Set up Python ${{ inputs.usePythonVersion }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ inputs.usePythonVersion }}
+
+      - name: Install python dependencies
+        run: |
+          pip install --user --upgrade pip
+          pip install --upgrade setuptools wheel twine check-wheel-contents
+          pip --version
+
+      - name: Build distributions
+        run: ./${{ inputs.buildScriptPath }}
+
+      - name: Show distributions
+        run: ls -lh dist/
+
+      - name: Check distribution descriptions
+        run: |
+          twine check dist/*
+
+      - name: Check wheel contents
+        run: |
+          check-wheel-contents dist/*.whl --ignore W007,W008
+
+      - name: Upload artifacts - ${{ input.artifactName }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.artifactName }}
+          path: |
+            ${{ inputs.artifactPath }/
+            !${{ inputs.artifactPath }/dbt-${{ inputs.version_number }}.tar.gz
+          if-no-files-found: error
+          retention-days: ${{ inputs.arifactRetentionDays }}

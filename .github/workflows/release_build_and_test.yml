@@ -1,0 +1,46 @@
+name: Build and Test
+
+on:
+  workflow_call:
+    inputs:
+      commitSHA:
+        description: Target commit
+        required: true
+        type: string
+      packageVersion:
+        description: Version to release
+        required: true
+        type: string
+      buildScriptPath:
+        description: Path to build scripts
+        required: true
+        type: string
+    secrets:
+      token:
+        required: true
+
+env:
+  ARTIFACT_RETENTION_DAYS: 2
+  PYTHON_TAGET_VERSION: 3.8
+
+jobs:
+  package-build:
+    uses: dbt-labs/dbt-release/.github/workflows/package_build.yml@master
+    with:
+      commitSHA: ${{ input.commitSHA }}
+      buildScriptPath: ${{ input.buildScriptPath }}
+      usePythonVersion: ${{ env.PYTHON_TAGET_VERSION }}
+      artifactName: ${{ input.packageVersion }}
+      artifactPath: "dist"
+      arifactRetentionDays: ${{ env.ARTIFACT_RETENTION_DAYS }}
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+
+  package-test:
+    uses: dbt-labs/dbt-release/.github/workflows/package_test.yml@master
+    with:
+      artifactName: ${{ input.packageVersion }}
+      artifactPath: "."
+      usePythonVersion: ${{ env.PYTHON_TAGET_VERSION }}
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,66 @@
+name: Test package
+
+on:
+  workflow_call:
+    inputs:
+      artifactName:
+        description: Build artifact name
+        required: true
+        type: string
+      artifactPath:
+        description: Path to download arifact
+        required: true
+        type: string
+      
+      usePythonVersion:
+        description: Set Python version for test
+        required: true
+        type: string
+    secrets:
+      token:
+        required: true
+
+jobs:
+  test-package:
+    name: Verify package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Python ${{ inputs.usePythonVersion }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ inputs.usePythonVersion }}
+
+      - name: Install python dependencies
+        run: |
+          pip install --user --upgrade pip
+          pip install --upgrade wheel
+          pip --version
+
+      - name: Download artifact ${{ inputs.artifactName }} to ${{ inputs.artifactPath }}
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.artifactName }}
+          path: ${{ inputs.artifactPath }}
+
+      - name: Display structure of all downloaded files
+        run: ls -R
+
+      - name: Show distributions
+        run: ls -lh dist/
+
+      - name: Install wheel distributions
+        run: |
+          find ./dist/*.whl -maxdepth 1 -type f | xargs pip install --force-reinstall --find-links=dist/
+
+      - name: Check wheel distributions
+        run: |
+          ${{ inputs.package_test_command }}
+
+      - name: Install source distributions
+        run: |
+          find ./dist/*.gz -maxdepth 1 -type f | xargs pip install --force-reinstall --find-links=dist/
+
+      - name: Check source distributions
+        run: |
+          ${{ inputs.package_test_command }}
