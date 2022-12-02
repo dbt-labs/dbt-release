@@ -5,7 +5,7 @@
 #  sha: the commit to attach to this release
 #  version_number: version number for the release (ex: 1.2.3rc2)
 #  file_uploads: Newline-delimited globs of paths to assets to upload for release
-#   
+#
 # **why?**
 # Reusable and consistent GitHub release process.
 #
@@ -36,14 +36,13 @@ on:
         description: Path to the changelog file for release notes
         required: true
         type: string
-      testing: 
+      testing:
         required: true
         type: string
     outputs:
-      tag: 
+      tag:
         description: The path to the changelog for this version
         value: ${{ jobs.check-release-exists.outputs.tag }}
-
 
 permissions:
   contents: write
@@ -54,10 +53,10 @@ jobs:
     steps:
       - name: Print variables
         run: |
-            echo The last commit sha in the release: ${{ inputs.sha }}
-            echo The release version number: ${{ inputs.version_number }}
-            echo Expected Changlog path: ${{ inputs.changelog_path }}
-            echo testing: ${{ inputs.testing }}
+          echo The last commit sha in the release: ${{ inputs.sha }}
+          echo The release version number: ${{ inputs.version_number }}
+          echo Expected Changlog path: ${{ inputs.changelog_path }}
+          echo testing: ${{ inputs.testing }}
 
   check-release-exists:
     runs-on: ubuntu-latest
@@ -73,9 +72,9 @@ jobs:
 
       - name: Check out the repository
         uses: actions/checkout@v3
-      
+
       # When the GitHub CLI doesn't find a release for the given tag, it will exit 1 with a
-      # message of "release not found".  In our case, it's not an actual error, just a 
+      # message of "release not found".  In our case, it's not an actual error, just a
       # confirmation that the release does not already exists so we can go ahead and create it.
       # The `|| true` makes it so the step does not exit with a non-zero exit code
       # Also check if the release already exists is draft state.  If it does, and we are not
@@ -113,7 +112,7 @@ jobs:
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
+
       - name: Log Job Outputs
         run: |
           echo exists: ${{ steps.release_check.outputs.exists }}
@@ -173,7 +172,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.version_number }}
-          path: '.'
+          path: "."
 
       - name: Display structure of all downloaded files
         run: ls -R
@@ -199,7 +198,7 @@ jobs:
           else
             echo This is not a draft release
           fi
-      
+
       - name: Publish a release that was previously a draft
         if: inputs.testing  == 'false' && needs.check-release-exists.outputs.draft_exists == 'true'
         run: |
