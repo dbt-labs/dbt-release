@@ -1,5 +1,0 @@
-commit: 21c6294c
-branch: 0.19.latest
-version: 0.19.1rc1
-
-An initial release candiate for v0.19.1.

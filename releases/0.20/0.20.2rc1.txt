@@ -1,9 +1,0 @@
-commit: 3918a0373552b5c7ef5b9ac3aa0d96bad348ede8
-branch: 0.20.latest
-version: 0.20.2rc1
-
-An initial release candidate for v0.20.2.
-
-### Under the hood
-- Switch to full reparse on partial parsing exceptions. Log and report exception information. ([#3725](https://github.com/dbt-labs/dbt/issues/3725), [#3733](https://github.com/dbt-labs/dbt/pull/3733))
-- Check for existence of test node when removing. ([#3711](https://github.com/dbt-labs/dbt/issues/3711), [#3750](https://github.com/dbt-labs/dbt/pull/3750))

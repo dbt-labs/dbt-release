@@ -1,5 +1,0 @@
-commit: dd2633df
-branch: develop
-version: 0.20.0b1
-
-An initial beta release for v0.20.0.

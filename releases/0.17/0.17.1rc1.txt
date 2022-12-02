@@ -1,5 +1,0 @@
-commit: 310a1dfa
-branch: dev/0.17.1
-version: 0.17.1rc1
-
-This is a bugfix release

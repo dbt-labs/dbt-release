@@ -1,5 +1,0 @@
-commit: 0cb97405
-branch: dev/0.18.1
-version: 0.18.1b3
-
-An initial release of 0.18.1b3

@@ -1,8 +1,0 @@
-commit: 761bc136
-branch: 0.18.latest
-version: 0.18.2
-
-### Under the hood
-- Pin `agate<1.6.2` to avoid installation errors relating to its new dependency
-  `PyICU` ([#3160](https://github.com/fishtown-analytics/dbt/issues/3160),
-  [#3161](https://github.com/fishtown-analytics/dbt/pull/3161))
