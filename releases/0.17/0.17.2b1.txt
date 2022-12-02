@@ -1,5 +1,0 @@
-commit: 353ae0f0
-branch: dev/0.17.2
-version: 0.17.2b1
-
-Expose snowflake debug logs

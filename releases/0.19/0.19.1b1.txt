@@ -1,5 +1,0 @@
-commit: 8567d5f3
-branch: 0.19.latest
-version: 0.19.1b1
-
-An initial release of 0.19.1b1

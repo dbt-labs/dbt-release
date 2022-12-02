@@ -1,5 +1,0 @@
-commit: d736c8c1
-branch: 0.18.latest
-version: 0.18.2rc1
-
-An initial release of 0.18.2rc1

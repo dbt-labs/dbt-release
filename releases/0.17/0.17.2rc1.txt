@@ -1,5 +1,0 @@
-commit: 5c18c78b
-branch: dev/0.17.2
-version: 0.17.2rc1
-
-This is a bugfix release

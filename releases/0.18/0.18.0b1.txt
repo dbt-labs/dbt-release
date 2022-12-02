@@ -1,5 +1,0 @@
-commit: e30db981
-branch: dev/marian-anderson
-version: 0.18.0b1
-
-An initial release of 0.18.0b1

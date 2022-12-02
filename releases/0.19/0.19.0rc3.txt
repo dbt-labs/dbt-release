@@ -1,5 +1,0 @@
-commit: 540c1fd9
-branch: dev/kiyoshi-kuromiya
-version: 0.19.0rc3
-
-An initial release of 0.19.0rc3 

@@ -1,6 +1,0 @@
-commit: c662e46d4de3ec0ca61589906d088c2d9eb196c3
-branch: 0.19.latest
-version: 0.19.2
-
-### Fixes
-- Fix infinite recursion when parsing schema tests due to loops in macro calls ([#3444](https://github.com/fishtown-analytics/dbt/issues/3344), [#3454](https://github.com/fishtown-analytics/dbt/pull/3454))
