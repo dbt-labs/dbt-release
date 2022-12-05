@@ -172,7 +172,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.version_number }}
-          path: "."
+          path: "dist/"
 
       - name: Display structure of all downloaded files
         run: ls -R
