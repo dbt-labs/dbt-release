@@ -165,6 +165,11 @@ jobs:
     if: inputs.testing  == 'false' && needs.check-release-exists.outputs.draft_exists == 'true'
 
     steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.sha }}
+
       - name: Publish a release that was previously a draft
         run: |
           gh release edit $TAG --draft=false
@@ -213,16 +218,7 @@ jobs:
             echo This is not a draft release
           fi
 
-      - name: Publish a release that was previously a draft
-        if: inputs.testing  == 'false' && needs.check-release-exists.outputs.draft_exists == 'true'
-        run: |
-          gh release edit $TAG --draft=false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ needs.check-release-exists.outputs.tag }}
-
       - name: Create New GitHub Release
-        if: needs.check-release-exists.outputs.draft_exists == 'false'
         run: |
           gh release create $TAG ./dist/* --title "$TITLE" --notes-file $RELEASE_NOTES --target $COMMIT $PRERELEASE $DRAFT
         env:
