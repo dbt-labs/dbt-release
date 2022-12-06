@@ -159,9 +159,23 @@ jobs:
           echo Cannot create a new tag for "${{ needs.check-release-exists.outputs.tag }}" for the same commit.
           exit 1
 
-  github-release:
+  github-release-update-status:
     runs-on: ubuntu-latest
     needs: [check-release-exists, audit-release-different-commit]
+    if: inputs.testing  == 'false' && needs.check-release-exists.outputs.draft_exists == 'true'
+
+    steps:
+      - name: Publish a release that was previously a draft
+        run: |
+          gh release edit $TAG --draft=false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.check-release-exists.outputs.tag }}
+
+  github-release-publish:
+    runs-on: ubuntu-latest
+    needs: [check-release-exists, audit-release-different-commit]
+    if: needs.check-release-exists.outputs.draft_exists == 'false'
 
     steps:
       - name: Check out the repository
