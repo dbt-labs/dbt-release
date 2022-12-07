@@ -84,7 +84,7 @@ jobs:
       # Also check if the release already exists is draft state.  If it does, and we are not
       # testing then we can publish that draft as is.  If it's in draft and we are testing, skip the
       # release.
-      - name: "Check if release exists for tag ${{ steps.set_tag.outputs.tag }}"
+      - name: "Check If Release Exists For Tag ${{ steps.set_tag.outputs.tag }}"
         id: release_check
         run: |
           output=$((gh release view ${{ steps.set_tag.outputs.tag }} --json isDraft,targetCommitish --repo ${{ env.REPO_LINK }}) 2>&1) || true
@@ -117,7 +117,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ env.REPO_LINK }}
 
-      - name: Log job outputs
+      - name: "[DEBUG] Log Job Outputs"
         run: |
           echo exists:       ${{ steps.release_check.outputs.exists }}
           echo draft_exists: ${{ steps.release_check.outputs.draft_exists }}
