@@ -57,13 +57,13 @@ jobs:
   log-inputs:
     runs-on: ubuntu-latest
     steps:
-      - name: Print variables
+      - name: "[DEBUG] Print Variables"
         run: |
           echo The last commit sha in the release: ${{ inputs.sha }}
           echo The release version number:         ${{ inputs.version_number }}
           echo Expected Changlog path:             ${{ inputs.changelog_path }}
           echo Test run:                           ${{ inputs.test_run }}
-          echo REPO_LINK:                          ${{ env.REPO_LINK }}
+          echo Repo link:                          ${{ env.REPO_LINK }}
 
   check-release-exists:
     runs-on: ubuntu-latest
@@ -73,12 +73,9 @@ jobs:
       tag: ${{ steps.set_tag.outputs.tag }}
 
     steps:
-      - name: Generate tag in expected format
+      - name: "Generate Release Tag"
         id: set_tag
         run: echo "tag=v${{ inputs.version_number }}" >> $GITHUB_OUTPUT
-
-      - name: Check out the repository - {{ github.repository }}
-        uses: actions/checkout@v3
 
       # When the GitHub CLI doesn't find a release for the given tag, it will exit 1 with a
       # message of "release not found".  In our case, it's not an actual error, just a
@@ -87,10 +84,10 @@ jobs:
       # Also check if the release already exists is draft state.  If it does, and we are not
       # testing then we can publish that draft as is.  If it's in draft and we are testing, skip the
       # release.
-      - name: Check if release exists for tag
+      - name: "Check if release exists for tag ${{ steps.set_tag.outputs.tag }}"
         id: release_check
         run: |
-          output=$((gh release view ${{ steps.set_tag.outputs.tag }} --json isDraft,targetCommitish --repo $REPO) 2>&1) || true
+          output=$((gh release view ${{ steps.set_tag.outputs.tag }} --json isDraft,targetCommitish --repo ${{ env.REPO_LINK }}) 2>&1) || true
           if [[ "$output" == "release not found" ]]
           then
             echo Release for tag ${{ steps.set_tag.outputs.tag }} does not exist
@@ -116,7 +113,6 @@ jobs:
           echo Release for tag ${{ steps.set_tag.outputs.tag }} already exists.  Skip GitHub release.
           echo "exists=true" >> $GITHUB_OUTPUT
           echo "draft_exists=false" >> $GITHUB_OUTPUT
-
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ env.REPO_LINK }}
@@ -133,7 +129,7 @@ jobs:
     if: needs.check-release-exists.outputs.exists == 'true'
 
     steps:
-      - name: Tag exists, skip GitHub Release job
+      - name: "Tag Exists, Skip GitHub Release Job"
         run: echo A tag already exists for ${{ needs.check-release-exists.outputs.tag }} and commit, skipping release
 
   audit-release-different-commit:
@@ -142,7 +138,7 @@ jobs:
     if: needs.check-release-exists.outputs.exists == 'false'
 
     steps:
-      - name: Check if release already exists for commit
+      - name: "Check If Release Already Exists For Commit"
         uses: cardinalby/git-get-release-action@v1
         id: check_release_commit
         env:
@@ -152,7 +148,7 @@ jobs:
           doNotFailIfNotFound: true # returns blank outputs when not found instead of error
           searchLimit: 15 # Since we only care about recent releases, speed up the process
 
-      - name: Print release details
+      - name: "[DEBUG] Print Release Details"
         run: |
           echo steps.check_release_commit.outputs.id:               ${{ steps.check_release_commit.outputs.id}}
           echo steps.check_release_commit.outputs.tag_name:         ${{ steps.check_release_commit.outputs.tag_name}}
@@ -160,7 +156,7 @@ jobs:
           echo steps.check_release_commit.outputs.prerelease:       ${{ steps.check_release_commit.outputs.prerelease}}
 
       # Since we already know a release for this tag does not exist, if we find anything it's for the wrong tag, exit
-      - name: Check if the tag matches the version number
+      - name: "Check If The Tag Matches The Version Number"
         if: steps.check_release_commit.outputs.id != ''
         run: |
           echo Tag "${{ steps.check_release_commit.outputs.tag_name}}" already exists for this commit!
@@ -173,13 +169,12 @@ jobs:
     if: inputs.test_run  == 'false' && needs.check-release-exists.outputs.draft_exists == 'true'
 
     steps:
-      - name: Publish a release that was previously a draft
+      - name: "Publicize Draft Release - ${{ needs.check-release-exists.outputs.tag }}"
         run: |
-          gh release edit $TAG --draft=false --repo $REPO
+          gh release edit $TAG --draft=false --repo ${{ env.REPO_LINK }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.check-release-exists.outputs.tag }}
-          REPO: ${{ env.REPO_LINK }}
 
   create-github-release:
     runs-on: ubuntu-latest
@@ -187,21 +182,21 @@ jobs:
     if: needs.check-release-exists.outputs.draft_exists == 'false'
 
     steps:
-      - name: Check out the repository - {{ github.repository }}
+      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.sha }}
 
-      - name: Download artifact ${{ inputs.version_number }}
+      - name: "Download Artifact ${{ inputs.version_number }} To dist Folder"
         uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.version_number }}
           path: "dist/"
 
-      - name: Display structure of all downloaded files
+      - name: "[DEBUG] Display Structure Of All Downloaded Files"
         run: ls -R
 
-      - name: Set release type
+      - name: "Set Release Type"
         id: release_type
         run: |
           if ${{ contains(inputs.version_number, 'rc') ||  contains(inputs.version_number, 'b') }}
@@ -212,7 +207,7 @@ jobs:
             echo This is not a prerelease
           fi
 
-      - name: Set as draft release
+      - name: "Set As Draft Release"
         id: draft
         run: |
           if [[ ${{ inputs.test_run }} == true ]]
@@ -223,7 +218,7 @@ jobs:
             echo This is not a draft release
           fi
 
-      - name: Create new GitHub release - v${{ needs.check-release-exists.outputs.tag }}
+      - name: "Create New GitHub Release - ${{ needs.check-release-exists.outputs.tag }}"
         run: |
           gh release create $TAG ./dist/* --title "$TITLE" --notes-file $RELEASE_NOTES --target $COMMIT $PRERELEASE $DRAFT
         env:
