@@ -111,7 +111,7 @@ jobs:
           if [[ $isDraft == true ]] && [[ ${{ inputs.test_run }} == false ]]
           then
             title="Release tag ${{ steps.set_tag.outputs.tag }} already associated with the draft release."
-            message="Release workflow will publicize the associated release."
+            message="Release workflow will publish the associated release."
             echo "exists=false" >> $GITHUB_OUTPUT
             echo "draft_exists=true" >> $GITHUB_OUTPUT
             echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
@@ -176,13 +176,13 @@ jobs:
           echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           exit 1
 
-  publicize-github-release:
+  publish-draft-release:
     runs-on: ubuntu-latest
     needs: [check-release-exists, audit-release-different-commit]
     if: inputs.test_run  == 'false' && needs.check-release-exists.outputs.draft_exists == 'true'
 
     steps:
-      - name: "Publicize Draft Release - ${{ needs.check-release-exists.outputs.tag }}"
+      - name: "Publish Draft Release - ${{ needs.check-release-exists.outputs.tag }}"
         run: |
           gh release edit $TAG --draft=false --repo ${{ env.REPO_LINK }}
         env:
@@ -225,7 +225,7 @@ jobs:
         run: |
           if [[ ${{ inputs.test_run }} == true ]]
           then
-            echo Release will be publihsed as draft
+            echo Release will be published as draft
             echo "draft=--draft" >> $GITHUB_OUTPUT 
           else
             echo This is not a draft release
