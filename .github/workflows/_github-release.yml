@@ -95,7 +95,7 @@ jobs:
             title="Release for tag ${{ steps.set_tag.outputs.tag }} does not exist"
             echo "exists=false" >> $GITHUB_OUTPUT
             echo "draft_exists=false" >> $GITHUB_OUTPUT
-            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title"
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::"
             exit 0
           fi
           commit=$(jq -r '.targetCommitish' <<< "$output")
@@ -140,7 +140,7 @@ jobs:
       - name: "Tag Exists, Skip GitHub Release Job"
         run: | 
           echo title="A tag already exists for ${{ needs.check-release-exists.outputs.tag }} and commit, skipping release."
-          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::"
 
   audit-release-different-commit:
     runs-on: ubuntu-latest
