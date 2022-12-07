@@ -173,7 +173,7 @@ jobs:
         run: |
           title="Tag ${{ steps.check_release_commit.outputs.tag_name }} already exists for this commit!"
           message="Cannot create a new tag for ${{ needs.check-release-exists.outputs.tag }} for the same commit"
-          echo "::warning title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+          echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           exit 1
 
   publicize-github-release:
@@ -214,7 +214,7 @@ jobs:
         run: |
           if ${{ contains(inputs.version_number, 'rc') ||  contains(inputs.version_number, 'b') }}
           then
-            echo This is a prerelease
+            echo Release will be set as pre-release
             echo "prerelease=--prerelease" >> $GITHUB_OUTPUT
           else
             echo This is not a prerelease
@@ -225,11 +225,18 @@ jobs:
         run: |
           if [[ ${{ inputs.test_run }} == true ]]
           then
-            echo This is a draft release
+            echo Release will be publihsed as draft
             echo "draft=--draft" >> $GITHUB_OUTPUT 
           else
             echo This is not a draft release
           fi
+
+      - name: "GitHub Release Workflow Annotation"
+        id: draft
+        run: |
+          title="Release ${{ needs.check-release-exists.outputs.tag }}"
+          message="Configuration: ${{ steps.release_type.outputs.prerelease }} ${{ steps.draft.outputs.draft }}"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "Create New GitHub Release - ${{ needs.check-release-exists.outputs.tag }}"
         run: |
