@@ -92,10 +92,11 @@ jobs:
           output=$((gh release view ${{ steps.set_tag.outputs.tag }} --json isDraft,targetCommitish --repo ${{ env.REPO_LINK }}) 2>&1) || true
           if [[ "$output" == "release not found" ]]
           then
-            title="Release for tag ${{ steps.set_tag.outputs.tag }} does not exist"
+            title="Release for tag ${{ steps.set_tag.outputs.tag }} does not exist."
+            message="Check passed."
             echo "exists=false" >> $GITHUB_OUTPUT
             echo "draft_exists=false" >> $GITHUB_OUTPUT
-            echo "::notice ${{ env.NOTIFICATION_PREFIX }}: $title"
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 0
           fi
           commit=$(jq -r '.targetCommitish' <<< "$output")
@@ -138,9 +139,10 @@ jobs:
 
     steps:
       - name: "Tag Exists, Skip GitHub Release Job"
-        run: | 
-          echo title="A tag already exists for ${{ needs.check-release-exists.outputs.tag }} and commit, skipping release."
-          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::"
+        run: |
+          echo title="A tag already exists for ${{ needs.check-release-exists.outputs.tag }} and commit."
+          echo message="Skipping GitHub release."
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
   audit-release-different-commit:
     runs-on: ubuntu-latest
