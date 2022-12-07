@@ -57,9 +57,9 @@ jobs:
       - name: Print variables
         run: |
           echo The last commit sha in the release: ${{ inputs.sha }}
-          echo The release version number: ${{ inputs.version_number }}
-          echo Expected Changlog path: ${{ inputs.changelog_path }}
-          echo Test run: ${{ inputs.test_run }}
+          echo The release version number:         ${{ inputs.version_number }}
+          echo Expected Changlog path:             ${{ inputs.changelog_path }}
+          echo Test run:                           ${{ inputs.test_run }}
 
   check-release-exists:
     runs-on: ubuntu-latest
@@ -118,9 +118,9 @@ jobs:
 
       - name: Log job outputs
         run: |
-          echo exists: ${{ steps.release_check.outputs.exists }}
+          echo exists:       ${{ steps.release_check.outputs.exists }}
           echo draft_exists: ${{ steps.release_check.outputs.draft_exists }}
-          echo tag: ${{ steps.set_tag.outputs.tag }}
+          echo tag:          ${{ steps.set_tag.outputs.tag }}
 
   skip-github-release:
     runs-on: ubuntu-latest
@@ -149,10 +149,10 @@ jobs:
 
       - name: Print release details
         run: |
-          echo steps.check_release_commit.outputs.id ${{ steps.check_release_commit.outputs.id}}
-          echo steps.check_release_commit.outputs.tag_name ${{ steps.check_release_commit.outputs.tag_name}}
-          echo steps.check_release_commit.outputs.target_commitish ${{ steps.check_release_commit.outputs.target_commitish}}
-          echo steps.check_release_commit.outputs.prerelease ${{ steps.check_release_commit.outputs.prerelease}}
+          echo steps.check_release_commit.outputs.id:               ${{ steps.check_release_commit.outputs.id}}
+          echo steps.check_release_commit.outputs.tag_name:         ${{ steps.check_release_commit.outputs.tag_name}}
+          echo steps.check_release_commit.outputs.target_commitish: ${{ steps.check_release_commit.outputs.target_commitish}}
+          echo steps.check_release_commit.outputs.prerelease:       ${{ steps.check_release_commit.outputs.prerelease}}
 
       # Since we already know a release for this tag does not exist, if we find anything it's for the wrong tag, exit
       - name: Check if the tag matches the version number
