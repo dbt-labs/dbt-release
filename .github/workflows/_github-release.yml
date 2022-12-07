@@ -232,7 +232,6 @@ jobs:
           fi
 
       - name: "GitHub Release Workflow Annotation"
-        id: draft
         run: |
           title="Release ${{ needs.check-release-exists.outputs.tag }}"
           message="Configuration: ${{ steps.release_type.outputs.prerelease }} ${{ steps.draft.outputs.draft }}"
