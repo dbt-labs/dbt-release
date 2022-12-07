@@ -65,6 +65,7 @@ jobs:
           echo Expected Changlog path:             ${{ inputs.changelog_path }}
           echo Test run:                           ${{ inputs.test_run }}
           echo Repo link:                          ${{ env.REPO_LINK }}
+          echo Notification prefix:                ${{ env.NOTIFICATION_PREFIX }}
 
   check-release-exists:
     runs-on: ubuntu-latest
@@ -91,29 +92,35 @@ jobs:
           output=$((gh release view ${{ steps.set_tag.outputs.tag }} --json isDraft,targetCommitish --repo ${{ env.REPO_LINK }}) 2>&1) || true
           if [[ "$output" == "release not found" ]]
           then
-            echo Release for tag ${{ steps.set_tag.outputs.tag }} does not exist
+            title="Release for tag ${{ steps.set_tag.outputs.tag }} does not exist"
             echo "exists=false" >> $GITHUB_OUTPUT
             echo "draft_exists=false" >> $GITHUB_OUTPUT
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title"
             exit 0
           fi
           commit=$(jq -r '.targetCommitish' <<< "$output")
           if [[ $commit != ${{ inputs.sha }} ]]
           then
-            echo Release for tag ${{ steps.set_tag.outputs.tag }} already exists for commit $commit!
-            echo Cannot create a new release for commit ${{ inputs.sha }}.  Exiting.
+            title="Release for tag ${{ steps.set_tag.outputs.tag }} already exists for commit $commit!"
+            message="Cannot create a new release for commit ${{ inputs.sha }}. Exiting."
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
           fi
           isDraft=$(jq -r '.isDraft' <<< "$output")
           if [[ $isDraft == true ]] && [[ ${{ inputs.test_run }} == false ]]
           then
-            echo Release for tag ${{ steps.set_tag.outputs.tag }} already exists in draft form.  Need to Publish.
+            title="Release tag ${{ steps.set_tag.outputs.tag }} already associated with the draft release."
+            message="Release workflow will publicize the associated release."
             echo "exists=false" >> $GITHUB_OUTPUT
             echo "draft_exists=true" >> $GITHUB_OUTPUT
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 0
           fi
-          echo Release for tag ${{ steps.set_tag.outputs.tag }} already exists.  Skip GitHub release.
+          title="Release for tag ${{ steps.set_tag.outputs.tag }} already exists."
+          message="Skip GitHub Release Publishing."
           echo "exists=true" >> $GITHUB_OUTPUT
           echo "draft_exists=false" >> $GITHUB_OUTPUT
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ env.REPO_LINK }}
@@ -131,7 +138,9 @@ jobs:
 
     steps:
       - name: "Tag Exists, Skip GitHub Release Job"
-        run: echo A tag already exists for ${{ needs.check-release-exists.outputs.tag }} and commit, skipping release
+        run: | 
+          echo title="A tag already exists for ${{ needs.check-release-exists.outputs.tag }} and commit, skipping release."
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title"
 
   audit-release-different-commit:
     runs-on: ubuntu-latest
@@ -145,16 +154,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          commitSha: ${{inputs.sha}}
+          commitSha: ${{ inputs.sha }}
           doNotFailIfNotFound: true # returns blank outputs when not found instead of error
           searchLimit: 15 # Since we only care about recent releases, speed up the process
 
       - name: "[DEBUG] Print Release Details"
         run: |
-          echo steps.check_release_commit.outputs.id:               ${{ steps.check_release_commit.outputs.id}}
-          echo steps.check_release_commit.outputs.tag_name:         ${{ steps.check_release_commit.outputs.tag_name}}
-          echo steps.check_release_commit.outputs.target_commitish: ${{ steps.check_release_commit.outputs.target_commitish}}
-          echo steps.check_release_commit.outputs.prerelease:       ${{ steps.check_release_commit.outputs.prerelease}}
+          echo steps.check_release_commit.outputs.id:               ${{ steps.check_release_commit.outputs.id }}
+          echo steps.check_release_commit.outputs.tag_name:         ${{ steps.check_release_commit.outputs.tag_name }}
+          echo steps.check_release_commit.outputs.target_commitish: ${{ steps.check_release_commit.outputs.target_commitish }}
+          echo steps.check_release_commit.outputs.prerelease:       ${{ steps.check_release_commit.outputs.prerelease }}
 
       # Since we already know a release for this tag does not exist, if we find anything it's for the wrong tag, exit
       - name: "Check If The Tag Matches The Version Number"
@@ -229,5 +238,5 @@ jobs:
           TITLE: ${{ github.event.repository.name }} ${{ needs.check-release-exists.outputs.tag }}
           RELEASE_NOTES: ${{ inputs.changelog_path }}
           COMMIT: ${{ inputs.sha }}
-          PRERELEASE: ${{ steps.release_type.outputs.prerelease}}
-          DRAFT: ${{ steps.draft.outputs.draft}}
+          PRERELEASE: ${{ steps.release_type.outputs.prerelease }}
+          DRAFT: ${{ steps.draft.outputs.draft }}
