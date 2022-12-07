@@ -52,6 +52,7 @@ permissions:
 
 env:
   REPO_LINK: ${{ github.server_url }}/${{ github.repository }}
+  NOTIFICATION_PREFIX: "[GitHub Release]"
 
 jobs:
   log-inputs:
@@ -161,7 +162,7 @@ jobs:
         run: |
           title="Tag ${{ steps.check_release_commit.outputs.tag_name }} already exists for this commit!"
           message="Cannot create a new tag for ${{ needs.check-release-exists.outputs.tag }} for the same commit"
-          echo "::warning title=$title::$message"
+          echo "::warning title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           exit 1
 
   publicize-github-release:
