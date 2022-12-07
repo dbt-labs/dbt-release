@@ -159,8 +159,9 @@ jobs:
       - name: "Check If The Tag Matches The Version Number"
         if: steps.check_release_commit.outputs.id != ''
         run: |
-          echo Tag "${{ steps.check_release_commit.outputs.tag_name}}" already exists for this commit!
-          echo Cannot create a new tag for "${{ needs.check-release-exists.outputs.tag }}" for the same commit.
+          title="Tag ${{ steps.check_release_commit.outputs.tag_name }} already exists for this commit!"
+          message="Cannot create a new tag for ${{ needs.check-release-exists.outputs.tag }} for the same commit"
+          echo "::warning title=$title::$message"
           exit 1
 
   publicize-github-release:
