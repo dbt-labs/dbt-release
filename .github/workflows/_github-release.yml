@@ -50,6 +50,9 @@ on:
 permissions:
   contents: write
 
+env:
+  REPO_LINK: ${{ github.server_url }}/${{ github.repository }}
+
 jobs:
   log-inputs:
     runs-on: ubuntu-latest
@@ -60,6 +63,7 @@ jobs:
           echo The release version number:         ${{ inputs.version_number }}
           echo Expected Changlog path:             ${{ inputs.changelog_path }}
           echo Test run:                           ${{ inputs.test_run }}
+          echo REPO_LINK:                          ${{ env.REPO_LINK }}
 
   check-release-exists:
     runs-on: ubuntu-latest
@@ -86,7 +90,7 @@ jobs:
       - name: Check if release exists for tag
         id: release_check
         run: |
-          output=$((gh release view ${{ steps.set_tag.outputs.tag }} --json isDraft,targetCommitish) 2>&1) || true
+          output=$((gh release view ${{ steps.set_tag.outputs.tag }} --json isDraft,targetCommitish --repo $REPO) 2>&1) || true
           if [[ "$output" == "release not found" ]]
           then
             echo Release for tag ${{ steps.set_tag.outputs.tag }} does not exist
@@ -115,6 +119,7 @@ jobs:
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ env.REPO_LINK }}
 
       - name: Log job outputs
         run: |
@@ -168,17 +173,13 @@ jobs:
     if: inputs.test_run  == 'false' && needs.check-release-exists.outputs.draft_exists == 'true'
 
     steps:
-      - name: Check out the repository  - {{ github.repository }}
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.sha }}
-
       - name: Publish a release that was previously a draft
         run: |
-          gh release edit $TAG --draft=false
+          gh release edit $TAG --draft=false --repo $REPO
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.check-release-exists.outputs.tag }}
+          REPO: ${{ env.REPO_LINK }}
 
   create-github-release:
     runs-on: ubuntu-latest
