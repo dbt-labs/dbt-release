@@ -11,7 +11,7 @@
 #  build_script_path: Path to the build script
 #  s3_bucket: Bucket name
 #  package_test_command: Command to use to check package runs
-#   
+#
 # **why?**
 # Reusable and consistent build process.
 #
@@ -51,6 +51,23 @@ on:
         required: true
         default: "dbt --version"
         type: string
+      audit_version_changelog:
+        required: false
+        default: false
+        type: boolean
+      check_build_exists:
+        required: false
+        default: false
+        type: boolean
+      upload_artifacts_aws:
+        required: false
+        default: false
+        type: boolean
+      test_run:
+        required: false
+        default: true
+        type: boolean
+
     # pass through secrets so every repo can have their own and won't depend on a name
     secrets:
       AWS_ACCESS_KEY_ID:
@@ -66,9 +83,8 @@ permissions:
   # id-token: write  # https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-cloud-providers#adding-permissions-settings
 
 env:
-  # include commit in path in case release commit gets updates on subsequent runs
-  s3_bucket: "s3://${{ inputs.s3_bucket_name }}/${{ github.repository }}/${{ inputs.version_number }}/${{ inputs.sha }}"
-  artifact_retention_days: 2
+  ARTIFACT_RETENTION_DAYS: 2
+  PYTHON_TARGET_VERSION: 3.8
 
 jobs:
   log-inputs:
@@ -76,16 +92,42 @@ jobs:
     steps:
       - name: Print variables
         run: |
-            echo The last commit sha in the release: ${{ inputs.sha }}
-            echo The release version number: ${{ inputs.version_number }}
-            echo The changelog_path: ${{ inputs.changelog_path }}
-            echo The build_script_path: ${{ inputs.build_script_path }}
-            echo The s3_bucket_name: ${{ inputs.s3_bucket_name }}
-            echo The package_test_command: ${{ inputs.package_test_command }}
+          echo The last commit sha in the release: ${{ inputs.sha }}
+          echo The release version number:         ${{ inputs.version_number }}
+          echo The changelog path:                 ${{ inputs.changelog_path }}
+          echo The build script path:              ${{ inputs.build_script_path }}
+          echo The s3 bucket name:                 ${{ inputs.s3_bucket_name }}
+          echo The package test command:           ${{ inputs.package_test_command }}
+          echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
+          echo audit_version_changelog:            ${{ inputs.audit_version_changelog }}
+          echo check_build_exists:                 ${{ inputs.check_build_exists }}
+          echo upload_artifacts_aws:               ${{ inputs.upload_artifacts_aws }}
+          echo Test run:                           ${{ inputs.test_run }}
+
+  resolve-aws-bucket:
+    runs-on: ubuntu-latest
+
+    outputs:
+      aws-s3-bucket: ${{ steps.bucket_path.outputs.path }}
+
+    steps:
+      # include commit in path in case release commit gets updates on subsequent runs
+      - name: Resolve S3 Bucket Path
+        id: bucket_path
+        run: |
+          artifact_folder="artifacts"
+          if [[ ${{ inputs.test_run }} == true ]]
+          then
+            artifact_folder="artifacts_testing"
+          fi
+          bucket_path="s3://${{ inputs.s3_bucket_name }}/${{ github.repository }}/$artifact_folder/${{ inputs.version_number }}/${{ inputs.sha }}"
+          echo $bucket_path
+          echo "path=$bucket_path" >> $GITHUB_OUTPUT
 
   audit-version-changelog:
     # Make sure the changelog has been generated and the version is up to date
     runs-on: ubuntu-latest
+    if: inputs.audit_version_changelog
 
     steps:
       - name: Check out the repository
@@ -110,7 +152,7 @@ jobs:
             echo The changelog for this release must exists before running this workflow.
             exit 1
           fi
-      
+
       - name: Check Current Version in code
         id: set_status
         run: |
@@ -124,11 +166,13 @@ jobs:
           fi
 
   check-build-exists:
-    needs: [audit-version-changelog]
+    needs: [audit-version-changelog, resolve-aws-bucket]
     runs-on: ubuntu-latest
+    if: ${{ inputs.check_build_exists && (!failure() && !cancelled()) }}
+
     outputs:
       exists: ${{ steps.set_existence.outputs.exists }}
-  
+
     steps:
       - name: Configure AWS credentials from Test account
         uses: aws-actions/configure-aws-credentials@v1
@@ -136,21 +180,24 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-      
+
       - name: Copy Artifacts from S3 via CLI
         run: |
-          aws s3 cp ${{ env.s3_bucket }} . --recursive  # since it's an entire directory
-      
+          aws s3 cp ${{ needs.resolve-aws-bucket.outputs.path }} . --recursive  # since it's an entire directory
+
+      - name: "[DEBUG] Display Structure Of All Downloaded Files"
+        run: ls -R
+
       - name: Check file existence
         id: check_files
-        uses: andstor/file-existence-action@v1
+        uses: andstor/file-existence-action@v2.0.0
         with:
           files: "${{ inputs.changelog_path }}, dist/*.tar.gz, dist/*.whl"
 
-      # upload the files downloaded from S3 to artifacts so we don't have to keep 
+      # upload the files downloaded from S3 to artifacts so we don't have to keep
       # downloading from S3
       - name: upload artifacts
-        if: steps.check_files.outputs.files_exists == 'true'
+        if: ${{ (inputs.upload_artifacts_aws && steps.check_files.outputs.files_exists == 'true') && (!failure() && !cancelled()) }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.version_number }}
@@ -158,8 +205,8 @@ jobs:
             dist/
             ${{ inputs.changelog_path }}
           if-no-files-found: error
-          retention-days: ${{ env.artifact_retention_days }}
-      
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
       - name: Set Exisistence for Other Jobs
         id: set_existence
         run: echo '::set-output name=exists::${{ steps.check_files.outputs.files_exists }}'
@@ -167,7 +214,7 @@ jobs:
   skip-build:
     runs-on: ubuntu-latest
     needs: [check-build-exists]
-    if: needs.check-build-exists.outputs.exists == 'true'
+    if: ${{ inputs.check_build_exist || needs.check-build-exists.outputs.exists == 'true' }}
 
     steps:
       - name: Build Exists, Skip To Test
@@ -177,100 +224,101 @@ jobs:
   build-packages:
     runs-on: ubuntu-latest
     needs: [audit-version-changelog, check-build-exists, check-build-exists]
-    if: needs.check-build-exists.outputs.exists == 'false'
+    if: ${{ needs.check-build-exists.outputs.exists == 'false' || (!failure() && !cancelled()) }}
 
     outputs:
       finished: ${{ steps.set_success.outputs.finished }}
 
     steps:
-      - name: Check out the repository
+      - name: "Checkout Commit - ${{ inputs.sha }}"
         uses: actions/checkout@v3
         with:
+          persist-credentials: false
           ref: ${{ inputs.sha }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
-      - name: Install python dependencies
+      - name: "Install Python Dependencies"
         run: |
-          pip install --user --upgrade pip
-          pip install --upgrade setuptools wheel twine check-wheel-contents
-          pip --version
+          python -m pip install --user --upgrade pip
+          python -m pip install --upgrade setuptools wheel twine check-wheel-contents
+          python -m pip --version
 
-      - name: Build distributions
-        run: ./${{ inputs.build_script_path }}
+      - name: "Build Distributions"
+        run: ./scripts/build-dist.sh
 
-      - name: Show distributions
+      - name: "[DEBUG] Show Distributions"
         run: ls -lh dist/
 
-      - name: Check distribution descriptions
+      - name: "Check Distribution Descriptions"
         run: |
           twine check dist/*
 
-      - name: Check wheel contents
+      - name: "[DEBUG] Check Wheel Contents"
         run: |
           check-wheel-contents dist/*.whl --ignore W007,W008
 
-      - name: upload artifacts
+      - name: "Upload Build Artifact - ${{ inputs.version_number }}"
         uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.version_number }}
           path: |
             dist/
             !dist/dbt-${{ inputs.version_number }}.tar.gz
-            ${{ inputs.changelog_path }}
-          if-no-files-found: error
-          retention-days: ${{ env.artifact_retention_days }}
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
   test-build:
     runs-on: ubuntu-latest
     needs: [build-packages]
-  
+
     steps:
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
-      - name: Install python dependencies
+      - name: "Install Python Dependencies"
         run: |
-          pip install --user --upgrade pip
-          pip install --upgrade wheel
-          pip --version
+          python -m pip install --user --upgrade pip
+          python -m pip install --upgrade wheel
+          python -m pip --version
 
-      - uses: actions/download-artifact@v3
+      - name: "Download Build Artifact - ${{ inputs.version_number }}"
+        uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.version_number }}
-          path: .
+          path: dist/
 
-      - name: Display structure of all downloaded files
+      - name: "[DEBUG] Display Structure Of All Downloaded Files"
         run: ls -R
-      
-      - name: Show distributions
+
+      - name: "[DEBUG] Show Distributions"
         run: ls -lh dist/
 
-      - name: Install wheel distributions
+      - name: "Install Wheel Distributions"
         run: |
-          find ./dist/*.whl -maxdepth 1 -type f | xargs pip install --force-reinstall --find-links=dist/
+          find ./dist/*.whl -maxdepth 1 -type f | xargs python -m pip install --force-reinstall --find-links=dist/
 
-      - name: Check wheel distributions
+      - name: "[DEBUG] Check Wheel Distributions"
         run: |
           ${{ inputs.package_test_command }}
 
-      - name: Install source distributions
+      - name: "Install Source Distributions"
         run: |
-          find ./dist/*.gz -maxdepth 1 -type f | xargs pip install --force-reinstall --find-links=dist/
+          find ./dist/*.gz -maxdepth 1 -type f | xargs python -m pip install --force-reinstall --find-links=dist/
 
-      - name: Check source distributions
+      - name: "[DEBUG] Check Source Distributions"
         run: |
           ${{ inputs.package_test_command }}
 
   upload-artifacts-aws:
     runs-on: ubuntu-latest
-    needs: [test-build]
-  
+    if: inputs.upload_artifacts_aws
+    needs: [test-build, resolve-aws-bucket]
+
     steps:
       - uses: actions/download-artifact@v3
         with:
@@ -289,4 +337,4 @@ jobs:
 
       - name: Upload Artifacts to S3 via CLI
         run: |
-          aws s3 cp . ${{ env.s3_bucket }} --recursive  # since it's an entire directory
+          aws s3 cp . ${{ needs.resolve-aws-bucket.outputs.path }} --recursive  # since it's an entire directory
