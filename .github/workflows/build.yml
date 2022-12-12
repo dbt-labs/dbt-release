@@ -103,6 +103,25 @@ jobs:
           echo check_build_exists:                 ${{ inputs.check_build_exists }}
           echo upload_artifacts_aws:               ${{ inputs.upload_artifacts_aws }}
 
+  resolve-aws-bucket:
+    runs-on: ubuntu-latest
+
+    outputs:
+      aws-s3-bucket: ${{ steps.bucket_path.outputs.path }}
+
+    steps:
+      - name: Resolve S3 Bucket Path
+        id: bucket_path
+        run: |
+          artifact_folder="artifacts"
+          if [[ ${{ inputs.testing }} == true ]]
+          then
+            artifact_folder="artifacts_testing"
+          fi
+          bucket_path="s3://${{ inputs.s3_bucket_name }}/${{ github.repository }}/$artifact_folder/${{ inputs.version_number }}/${{ inputs.sha }}"
+          echo $bucket_path
+          echo "path=$bucket_path" >> $GITHUB_OUTPUT
+
   audit-version-changelog:
     # Make sure the changelog has been generated and the version is up to date
     runs-on: ubuntu-latest
@@ -145,7 +164,7 @@ jobs:
           fi
 
   check-build-exists:
-    needs: [audit-version-changelog]
+    needs: [audit-version-changelog, resolve-aws-bucket]
     runs-on: ubuntu-latest
     if: ${{ inputs.check_build_exists && (!failure() && !cancelled()) }}
 
@@ -162,7 +181,7 @@ jobs:
 
       - name: Copy Artifacts from S3 via CLI
         run: |
-          aws s3 cp ${{ env.AWS_S3_BUCKET }} . --recursive  # since it's an entire directory
+          aws s3 cp ${{ needs.resolve-aws-bucket.outputs.path }} . --recursive  # since it's an entire directory
 
       - name: "[DEBUG] Display Structure Of All Downloaded Files"
         run: ls -R
@@ -296,7 +315,7 @@ jobs:
   upload-artifacts-aws:
     runs-on: ubuntu-latest
     if: inputs.upload_artifacts_aws
-    needs: [test-build]
+    needs: [test-build, resolve-aws-bucket]
 
     steps:
       - uses: actions/download-artifact@v3
@@ -316,4 +335,4 @@ jobs:
 
       - name: Upload Artifacts to S3 via CLI
         run: |
-          aws s3 cp . ${{ env.AWS_S3_BUCKET }} --recursive  # since it's an entire directory
+          aws s3 cp . ${{ needs.resolve-aws-bucket.outputs.path }} --recursive  # since it's an entire directory
