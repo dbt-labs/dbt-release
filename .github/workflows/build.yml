@@ -51,6 +51,18 @@ on:
         required: true
         default: "dbt --version"
         type: string
+      audit_version_changelog:
+        required: false
+        default: false
+        type: boolean
+      check_build_exists:
+        required: false
+        default: false
+        type: boolean
+      upload_artifacts_aws:
+        required: false
+        default: false
+        type: boolean
 
     # pass through secrets so every repo can have their own and won't depend on a name
     secrets:
@@ -87,10 +99,14 @@ jobs:
           echo AWS S3 bucket name:                 ${{ env.AWS_S3_BUCKET }}
           echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
           echo Artifact retention days:            ${{ env.ARTIFACT_RETENTION_DAYS }}
+          echo audit_version_changelog:       ${{ input.audit_version_changelog }}
+          echo check_build_exists:            ${{ inputs.check_build_exists }} 
+          echo upload_artifacts_aws:          ${{ inputs.upload_artifacts_aws }}
 
   audit-version-changelog:
     # Make sure the changelog has been generated and the version is up to date
     runs-on: ubuntu-latest
+    if: input.audit_version_changelog
 
     steps:
       - name: Check out the repository
@@ -131,6 +147,8 @@ jobs:
   check-build-exists:
     needs: [audit-version-changelog]
     runs-on: ubuntu-latest
+    if: inputs.check_build_exists
+
     outputs:
       exists: ${{ steps.set_existence.outputs.exists }}
 
@@ -172,7 +190,7 @@ jobs:
   skip-build:
     runs-on: ubuntu-latest
     needs: [check-build-exists]
-    if: needs.check-build-exists.outputs.exists == 'true'
+    if: ${{ inputs.check_build_exist || sneeds.check-build-exists.outputs.exists == 'true' }}
 
     steps:
       - name: Build Exists, Skip To Test
@@ -274,6 +292,7 @@ jobs:
 
   upload-artifacts-aws:
     runs-on: ubuntu-latest
+    if: inputs.upload_artifacts_aws
     needs: [test-build]
 
     steps:
