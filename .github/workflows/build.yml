@@ -99,14 +99,14 @@ jobs:
           echo AWS S3 bucket name:                 ${{ env.AWS_S3_BUCKET }}
           echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
           echo Artifact retention days:            ${{ env.ARTIFACT_RETENTION_DAYS }}
-          echo audit_version_changelog:       ${{ input.audit_version_changelog }}
-          echo check_build_exists:            ${{ inputs.check_build_exists }}
-          echo upload_artifacts_aws:          ${{ inputs.upload_artifacts_aws }}
+          echo audit_version_changelog:            ${{ inputs.audit_version_changelog }}
+          echo check_build_exists:                 ${{ inputs.check_build_exists }}
+          echo upload_artifacts_aws:               ${{ inputs.upload_artifacts_aws }}
 
   audit-version-changelog:
     # Make sure the changelog has been generated and the version is up to date
     runs-on: ubuntu-latest
-    if: input.audit_version_changelog
+    if: inputs.audit_version_changelog
 
     steps:
       - name: Check out the repository
@@ -194,7 +194,7 @@ jobs:
 
     steps:
       - name: Build Exists, Skip To Test
-        run: |
+        run: |.
           echo A build already exists for version ${{ inputs.version_number }}, skipping build job
 
   build-packages:
