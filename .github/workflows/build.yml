@@ -47,10 +47,6 @@ on:
         required: true
         default: "core-team-artifacts"
         type: string
-      s3_artifact_folder:
-        required: true
-        default: "artifacts"
-        type: string
       package_test_command:
         required: true
         default: "dbt --version"
@@ -84,7 +80,7 @@ permissions:
 
 env:
   # include commit in path in case release commit gets updates on subsequent runs
-  AWS_S3_BUCKET: "s3://${{ inputs.s3_bucket_name }}/${{ github.repository }}/${{ inputs.s3_artifact_folder }}/${{ inputs.version_number }}/${{ inputs.sha }}"
+  AWS_S3_BUCKET: "s3://${{ inputs.s3_bucket_name }}/${{ github.repository }}/${{ inputs.version_number }}/${{ inputs.sha }}"
   ARTIFACT_RETENTION_DAYS: 2
   PYTHON_TARGET_VERSION: 3.8
 
@@ -99,7 +95,6 @@ jobs:
           echo The changelog path:                 ${{ inputs.changelog_path }}
           echo The build script path:              ${{ inputs.build_script_path }}
           echo The s3 bucket name:                 ${{ inputs.s3_bucket_name }}
-          echo Folder for arifact:                 ${{ inputs.s3_artifact_folder }}
           echo The package test command:           ${{ inputs.package_test_command }}
           echo AWS S3 bucket name:                 ${{ env.AWS_S3_BUCKET }}
           echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
