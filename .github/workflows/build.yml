@@ -63,6 +63,10 @@ on:
         required: false
         default: false
         type: boolean
+      test_run:
+        required: false
+        default: true
+        type: boolean
 
     # pass through secrets so every repo can have their own and won't depend on a name
     secrets:
@@ -114,7 +118,7 @@ jobs:
         id: bucket_path
         run: |
           artifact_folder="artifacts"
-          if [[ ${{ inputs.testing }} == true ]]
+          if [[ ${{ inputs.test_run }} == true ]]
           then
             artifact_folder="artifacts_testing"
           fi
