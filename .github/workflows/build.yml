@@ -83,8 +83,6 @@ permissions:
   # id-token: write  # https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-cloud-providers#adding-permissions-settings
 
 env:
-  # include commit in path in case release commit gets updates on subsequent runs
-  AWS_S3_BUCKET: "s3://${{ inputs.s3_bucket_name }}/${{ github.repository }}/${{ inputs.version_number }}/${{ inputs.sha }}"
   ARTIFACT_RETENTION_DAYS: 2
   PYTHON_TARGET_VERSION: 3.8
 
@@ -100,12 +98,11 @@ jobs:
           echo The build script path:              ${{ inputs.build_script_path }}
           echo The s3 bucket name:                 ${{ inputs.s3_bucket_name }}
           echo The package test command:           ${{ inputs.package_test_command }}
-          echo AWS S3 bucket name:                 ${{ env.AWS_S3_BUCKET }}
           echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
-          echo Artifact retention days:            ${{ env.ARTIFACT_RETENTION_DAYS }}
           echo audit_version_changelog:            ${{ inputs.audit_version_changelog }}
           echo check_build_exists:                 ${{ inputs.check_build_exists }}
           echo upload_artifacts_aws:               ${{ inputs.upload_artifacts_aws }}
+          echo Test run:                           ${{ inputs.test_run }}
 
   resolve-aws-bucket:
     runs-on: ubuntu-latest
@@ -114,6 +111,7 @@ jobs:
       aws-s3-bucket: ${{ steps.bucket_path.outputs.path }}
 
     steps:
+      # include commit in path in case release commit gets updates on subsequent runs
       - name: Resolve S3 Bucket Path
         id: bucket_path
         run: |
