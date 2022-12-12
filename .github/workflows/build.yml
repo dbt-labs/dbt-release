@@ -194,7 +194,7 @@ jobs:
 
     steps:
       - name: Build Exists, Skip To Test
-        run: |.
+        run: |
           echo A build already exists for version ${{ inputs.version_number }}, skipping build job
 
   build-packages:
