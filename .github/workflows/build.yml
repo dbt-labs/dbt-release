@@ -183,7 +183,7 @@ jobs:
 
       - name: Copy Artifacts from S3 via CLI
         run: |
-          aws s3 cp ${{ needs.resolve-aws-bucket.outputs.path }} . --recursive  # since it's an entire directory
+          aws s3 cp ${{ needs.resolve-aws-bucket.outputs.aws-s3-bucket }} . --recursive  # since it's an entire directory
 
       - name: "[DEBUG] Display Structure Of All Downloaded Files"
         run: ls -R
@@ -367,4 +367,4 @@ jobs:
 
       - name: Upload Artifacts to S3 via CLI
         run: |
-          aws s3 cp . ${{ needs.resolve-aws-bucket.outputs.path }} --recursive  # since it's an entire directory
+          aws s3 cp . ${{ needs.resolve-aws-bucket.outputs.aws-s3-bucket }} --recursive  # since it's an entire directory
