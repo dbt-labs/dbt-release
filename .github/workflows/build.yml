@@ -192,7 +192,7 @@ jobs:
         id: check_files
         uses: andstor/file-existence-action@v2.0.0
         with:
-          files: "${{ inputs.changelog_path }}, dist/*.tar.gz, dist/*.whl"
+          files: "${{ inputs.changelog_path }}, *.tar.gz, *.whl"
 
       # upload the files downloaded from S3 to artifacts so we don't have to keep
       # downloading from S3
@@ -202,7 +202,8 @@ jobs:
         with:
           name: ${{ inputs.version_number }}
           path: |
-            dist/
+            *.tar.gz
+            *.whl
             ${{ inputs.changelog_path }}
           if-no-files-found: error
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
@@ -296,6 +297,7 @@ jobs:
         with:
           name: ${{ inputs.version_number }}
           path: |
+            ${{ inputs.changelog_path }}
             dist/
             !dist/dbt-${{ inputs.version_number }}.tar.gz
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
