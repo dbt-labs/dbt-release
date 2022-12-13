@@ -305,6 +305,7 @@ jobs:
 
   test-build:
     runs-on: ubuntu-latest
+    if: ${{ !failure() && !cancelled() }}
     needs: [build-packages]
 
     steps:
@@ -349,7 +350,7 @@ jobs:
 
   upload-artifacts-aws:
     runs-on: ubuntu-latest
-    if: inputs.upload_artifacts_aws
+    if: ${{ (!failure() && !cancelled()) && inputs.upload_artifacts_aws }}
     needs: [test-build, resolve-aws-bucket]
 
     steps:
