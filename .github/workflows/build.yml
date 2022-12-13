@@ -255,6 +255,7 @@ jobs:
 
   build-packages:
     runs-on: ubuntu-latest
+    if: ${{ !failure() && !cancelled() }}
     needs: [unit]
 
     outputs:
