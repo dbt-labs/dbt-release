@@ -224,7 +224,7 @@ jobs:
   unit:
     name: Unit Test
     needs: [audit-version-changelog, check-build-exists, check-build-exists]
-    if: ${{ needs.check-build-exists.outputs.exists == 'false' || (!failure() && !cancelled()) }}
+    if: ${{ needs.check-build-exists.outputs.exists == 'false' && (!failure() && !cancelled()) }}
     runs-on: ubuntu-latest
 
     env:
