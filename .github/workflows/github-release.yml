@@ -235,7 +235,7 @@ jobs:
 
       - name: "Create New GitHub Release - ${{ needs.check-release-exists.outputs.tag }}"
         run: |
-          gh release create $TAG ./dist/* --title "$TITLE" --notes-file $RELEASE_NOTES --target $COMMIT $PRERELEASE $DRAFT
+          gh release create $TAG ./dist/* --title "$TITLE" --notes-file $RELEASE_NOTES --target $COMMIT $PRERELEASE $DRAFT --repo ${{ env.REPO_LINK }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.check-release-exists.outputs.tag }}
