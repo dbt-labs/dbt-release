@@ -254,7 +254,6 @@ jobs:
 
   build-packages:
     runs-on: ubuntu-latest
-    if: ${{ !failure() && !cancelled() }}
     needs: [unit]
 
     outputs:
@@ -304,7 +303,6 @@ jobs:
 
   test-build:
     runs-on: ubuntu-latest
-    if: ${{ !failure() && !cancelled() }}
     needs: [build-packages]
 
     steps:
