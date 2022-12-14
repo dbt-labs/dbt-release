@@ -297,7 +297,8 @@ jobs:
         with:
           name: ${{ inputs.version_number }}
           path: |
-            dist/
+            ${{ inputs.changelog_path }}
+            ./dist/
             !dist/dbt-${{ inputs.version_number }}.tar.gz
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
