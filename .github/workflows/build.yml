@@ -181,14 +181,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Copy Artifacts from S3 via CLI
+      - name: Copy Artifact from S3 via CLI
         run: |
           aws s3 cp ${{ needs.resolve-aws-bucket.outputs.aws-s3-bucket }} . --recursive  # since it's an entire directory
 
       - name: "[DEBUG] Display Structure Of All Downloaded Files"
         run: ls -R
 
-      - name: Check file existence
+      - name: Check File Existence
         id: check_files
         uses: andstor/file-existence-action@v2.0.0
         with:
@@ -196,7 +196,7 @@ jobs:
 
       # upload the files downloaded from S3 to artifacts so we don't have to keep
       # downloading from S3
-      - name: upload artifacts
+      - name: Upload Artifact From S3 To GitHub
         if: ${{ (inputs.upload_artifacts_aws && steps.check_files.outputs.files_exists == 'true') && (!failure() && !cancelled()) }}
         uses: actions/upload-artifact@v3
         with:
@@ -207,9 +207,9 @@ jobs:
           if-no-files-found: error
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
-      - name: Set Exisistence for Other Jobs
+      - name: Set Exisistence For Other Jobs
         id: set_existence
-        run: echo '::set-output name=exists::${{ steps.check_files.outputs.files_exists }}'
+        run: echo "exists=${{ steps.check_files.outputs.files_exists }}" >> $GITHUB_STATE
 
   skip-build:
     runs-on: ubuntu-latest
@@ -223,7 +223,7 @@ jobs:
 
   unit:
     name: Unit Test
-    needs: [audit-version-changelog, check-build-exists, check-build-exists]
+    needs: [audit-version-changelog, check-build-exists]
     if: ${{ needs.check-build-exists.outputs.exists == 'false' && (!failure() && !cancelled()) }}
     runs-on: ubuntu-latest
 
@@ -356,7 +356,7 @@ jobs:
           name: ${{inputs.version_number}}
           path: .
 
-      - name: Display structure of all downloaded files
+      - name: Display Structure Of All Downloaded Files
         run: ls -R
 
       - name: Configure AWS credentials
