@@ -98,7 +98,6 @@ jobs:
 
   resolve-aws-bucket:
     runs-on: ubuntu-latest
-
     outputs:
       aws-s3-bucket: ${{ steps.bucket_path.outputs.path }}
 
@@ -106,14 +105,17 @@ jobs:
       - name: "Resolve S3 Bucket Path"
         id: bucket_path
         run: |
+          # Resolve folder to upload/check build artifact
           artifact_folder="artifacts"
           if [[ ${{ inputs.test_run }} == true ]]
           then
             artifact_folder="artifacts_testing"
           fi
-          # include commit in path in case release commit gets updates on subsequent runs
+          # Generate path for build artifact.
+          # Include commit in path in case release commit gets updates on subsequent runs
           bucket_path="s3://${{ inputs.s3_bucket_name }}/${{ github.repository }}/$artifact_folder/${{ inputs.version_number }}/${{ inputs.sha }}"
           echo "path=$bucket_path" >> $GITHUB_OUTPUT
+          # Send notification
           title="S3 Bucket Path"
           echo "$title: $bucket_path"
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$bucket_path"
@@ -164,15 +166,15 @@ jobs:
           fi
 
   check-build-exists:
-    needs: [audit-version-changelog, resolve-aws-bucket]
     runs-on: ubuntu-latest
+    needs: [audit-version-changelog, resolve-aws-bucket]
 
     outputs:
-      exists: ${{ steps.set_existence.outputs.exists }}
+      exists: ${{ steps.artifact_exists.outputs.exists }}
 
     steps:
       - name: "Configure Aws Credentials"
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -185,16 +187,16 @@ jobs:
       - name: "[DEBUG] Display Structure Of All Downloaded Files"
         run: ls -R
 
-      - name: "Check File Existence"
-        id: check_files
+      - name: "Check Artifact Integrity"
+        id: artifact_integrity
         uses: andstor/file-existence-action@v2.0.0
         with:
           files: "${{ inputs.changelog_path }}, dist/*.tar.gz, dist/*.whl"
 
       # upload the files downloaded from S3 to artifacts so we don't have to keep
       # downloading from S3
-      - name: "Upload Artifact From S3 To Github"
-        if: ${{ && steps.check_files.outputs.files_exists == 'true' }}
+      - name: "Upload Artifact From S3 To GitHub"
+        if: ${{ && steps.artifact_integrity.outputs.files_exists == 'true' }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.version_number }}
@@ -204,14 +206,20 @@ jobs:
           if-no-files-found: error
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
-      - name: "Set Exisistence For Other Jobs"
-        id: set_existence
-        run: echo "exists=${{ steps.check_files.outputs.files_exists }}" >> $GITHUB_STATE
+      - name: "[Notification] Upload Artifact From S3 To GitHub"
+        run: |
+          title="Artifact ${{ inputs.version_number }} uploaded from S3 To GitHub"
+          message="The build artifact is pulled from the S3 bucket and uploaded to the GitHub artifact storage."
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+
+      - name: "Set Artifact Existence For Subsequent Jobs"
+        id: artifact_exists
+        run: echo "exists=${{ steps.artifact_integrity.outputs.files_exists }}" >> $GITHUB_STATE
 
   skip-build:
     runs-on: ubuntu-latest
     needs: [check-build-exists]
-    if: ${{ inputs.check_build_exist || needs.check-build-exists.outputs.exists == 'true' }}
+    if: ${{ needs.check-build-exists.outputs.exists == 'true' }}
 
     steps:
       - name: "Build Exists, Skip To Test"
@@ -222,15 +230,15 @@ jobs:
 
   unit:
     name: Unit Test
+    runs-on: ubuntu-latest
     needs: [audit-version-changelog, check-build-exists]
     if: ${{ needs.check-build-exists.outputs.exists == 'false' }}
-    runs-on: ubuntu-latest
 
     env:
       TOXENV: "unit"
 
     steps:
-      - name: "Checkout Commit - ${{ inputs.sha }}"
+      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
         uses: actions/checkout@v3
         with:
           persist-credentials: false
@@ -276,7 +284,7 @@ jobs:
           python -m pip install --upgrade setuptools wheel twine check-wheel-contents
           python -m pip --version
 
-      - name: "Build Distributions"
+      - name: "Build Distributions - ./${{ inputs.build_script_path }}"
         run: ./${{ inputs.build_script_path }}
 
       - name: "[DEBUG] Show Distributions"
@@ -359,12 +367,15 @@ jobs:
         run: ls -R
 
       - name: "Configure Aws Credentials"
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: "Upload Artifacts To S3 Via Cli"
+      - name: "Upload Artifact To S3 Via Cli"
         run: |
           aws s3 cp . ${{ needs.resolve-aws-bucket.outputs.aws-s3-bucket }} --recursive  # since it's an entire directory
+          title="Artifact ${{ inputs.version_number }} uploaded to AWS S3 bucket"
+          message="S3 path: ${{ needs.resolve-aws-bucket.outputs.aws-s3-bucket }}"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
