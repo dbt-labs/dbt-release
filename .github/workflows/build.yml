@@ -1,22 +1,40 @@
 # **what?**
 # Build release artifacts and store them to S3 bucket if they do not already exist.
 #
+# Expected build artifact layout:
+#
+# ├── dist
+# │   ├── dbt-*.tar.gz
+# │   ├── dbt-*.whl
+# └── <release_notes>.md
+#
 # Build artifacts get stored in S3 to a bucket with the following directory structure:
-#       "s3://<s3_bucket>/<org>/<repo>/<version>/<commit>/"
-#   ex: "s3://core-team-artifacts/dbt-labs/dbt-core/1.2.3/ce98e6f067d9fa63a9b213bf99ebaf0c29d2b7eb/"
+#       "s3://<s3_bucket>/<org>/<repo>/<artifact_folder>/<version>/<commit>/"
+#
+#   Notes:
+#   <artifact_folder> - resolves based on `test_run` input value.
+#     test_run == true  will use "artifacts_testing"
+#     test_run == flase will use "artifacts"
+#
+#   Examples:
+#     test_run == true  : "s3://core-team-artifacts/dbt-labs/dbt-core/artifacts_testing/1.2.3/ce98e6f067d9fa63a9b213bf99ebaf0c29d2b7eb/"
+#     test_run == false : "s3://core-team-artifacts/dbt-labs/dbt-core/artifacts/1.2.3/ce98e6f067d9fa63a9b213bf99ebaf0c29d2b7eb/"
 #
 # Inputs:
-#  sha: the commit to attache to this release
-#  version_number: version number for the release (ex: 1.2.3rc2)
-#  build_script_path: Path to the build script
-#  s3_bucket: Bucket name
+#  sha:                  The commit to attach to this release
+#  version_number:       The release version number (i.e. 1.0.0b1, 1.2.3rc2, 1.0.0)
+#  changelog_path:       Path to the changelog file for release notes
+#  build_script_path:    Path to the build script
+#  s3_bucket_name:       AWS S3 bucket name
 #  package_test_command: Command to use to check package runs
+#  test_run:             Test run (Bucket to uplaoad the artifact)
 #
 # **why?**
 # Reusable and consistent build process.
 #
 # **when?**
-# Call when you have a commit to build and want to trigger a release.
+# Call after a successful version bump up.
+# This workflow expects that the package version is bumped and the associated changelog living in sources.
 #
 # Validation Checks
 #
