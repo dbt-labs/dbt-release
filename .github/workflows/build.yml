@@ -27,7 +27,7 @@
 #  build_script_path:    Path to the build script
 #  s3_bucket_name:       AWS S3 bucket name
 #  package_test_command: Command to use to check package runs
-#  test_run:             Test run (Bucket to uplaoad the artifact)
+#  test_run:             Test run (Bucket to upload the artifact)
 #
 # **why?**
 # Reusable and consistent build process.
