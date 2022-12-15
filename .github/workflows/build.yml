@@ -162,7 +162,7 @@ jobs:
             message="Specified file ${{ inputs.changelog_path }} - exists."
             echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
-            message="Specified file ${{ inputs.changelog_path }} does not exist! The changelog for this release must exists before running this workflow."
+            message="Specified file ${{ inputs.changelog_path }} does not exist! The changelog for this release must exist before running this workflow."
             git status
             echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
