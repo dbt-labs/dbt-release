@@ -130,7 +130,7 @@ jobs:
           # include commit in path in case release commit gets updates on subsequent runs
           bucket_path="s3://${{ inputs.s3_bucket_name }}/${{ github.repository }}/$artifact_folder/${{ inputs.version_number }}/${{ inputs.sha }}"
           echo "path=$bucket_path" >> $GITHUB_OUTPUT
-          $title="S3 Bucket Path"
+          title="S3 Bucket Path"
           echo "$title: $bucket_path"
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$bucket_path"
 
@@ -153,13 +153,13 @@ jobs:
 
       - name: "Audit Changelog Exists"
         run: |
-          $title="Audit Changelog Exists"
+          title="Audit Changelog Exists"
           if test -f ${{ inputs.changelog_path }}
           then
-            $message="Specified file ${{ inputs.changelog_path }} - exists."
+            message="Specified file ${{ inputs.changelog_path }} - exists."
             echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
-            $message = "Specified file ${{ inputs.changelog_path }} does not exist! The changelog for this release must exists before running this workflow."
+            message="Specified file ${{ inputs.changelog_path }} does not exist! The changelog for this release must exists before running this workflow."
             git status
             echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
@@ -168,13 +168,13 @@ jobs:
       - name: "Check Current Version In Code"
         id: set_status
         run: |
-          $title="Check Current Version In Code"
+          title="Check Current Version In Code"
           if grep -Fxq "current_version = ${{ inputs.version_number }}" .bumpversion.cfg
           then
-            $message="Version set to ${{ inputs.version_number }}."
+            message="Version set to ${{ inputs.version_number }}."
             echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
-            $message="Version not set to ${{ inputs.version_number }}. The versionbump worklow must be complete before running this workflow."
+            message="Version not set to ${{ inputs.version_number }}. The versionbump worklow must be complete before running this workflow."
             git status
             echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
@@ -234,8 +234,8 @@ jobs:
     steps:
       - name: "Build Exists, Skip To Test"
         run: |
-          $title="Build Exists in AWS S3 bucket"
-          $message="A build already exists for version ${{ inputs.version_number }}, skipping build job."
+          title="Build Exists in AWS S3 bucket"
+          message="A build already exists for version ${{ inputs.version_number }}, skipping build job."
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
   unit:
