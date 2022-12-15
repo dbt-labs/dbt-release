@@ -84,8 +84,9 @@ permissions:
 
 env:
   ARTIFACT_RETENTION_DAYS: 2
-  PYTHON_TARGET_VERSION: 3.8
   AWS_REGION: "us-east-1"
+  PYTHON_TARGET_VERSION: 3.8
+  NOTIFICATION_PREFIX: "[Build]"
 
 jobs:
   log-inputs:
@@ -93,17 +94,23 @@ jobs:
     steps:
       - name: "[DEBUG] Print Variables"
         run: |
+          # WORKFLOW INPUTS
           echo The last commit sha in the release: ${{ inputs.sha }}
           echo The release version number:         ${{ inputs.version_number }}
           echo The changelog path:                 ${{ inputs.changelog_path }}
           echo The build script path:              ${{ inputs.build_script_path }}
           echo The s3 bucket name:                 ${{ inputs.s3_bucket_name }}
           echo The package test command:           ${{ inputs.package_test_command }}
+          echo Test run:                           ${{ inputs.test_run }}
+          # ENVIROMENT VARIABLES
+          echo GitHub artifact retention days:     ${{ env.ARTIFACT_RETENTION_DAYS }}
+          echo Amazon Web Services region:         ${{ env.AWS_REGION }}
           echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
+          echo Notification prefix:                ${{ env.NOTIFICATION_PREFIX }}
+          # OTHER
           echo audit_version_changelog:            ${{ inputs.audit_version_changelog }}
           echo check_build_exists:                 ${{ inputs.check_build_exists }}
           echo upload_artifacts_aws:               ${{ inputs.upload_artifacts_aws }}
-          echo Test run:                           ${{ inputs.test_run }}
 
   resolve-aws-bucket:
     runs-on: ubuntu-latest
@@ -112,7 +119,6 @@ jobs:
       aws-s3-bucket: ${{ steps.bucket_path.outputs.path }}
 
     steps:
-      # include commit in path in case release commit gets updates on subsequent runs
       - name: "Resolve S3 Bucket Path"
         id: bucket_path
         run: |
@@ -121,9 +127,12 @@ jobs:
           then
             artifact_folder="artifacts_testing"
           fi
+          # include commit in path in case release commit gets updates on subsequent runs
           bucket_path="s3://${{ inputs.s3_bucket_name }}/${{ github.repository }}/$artifact_folder/${{ inputs.version_number }}/${{ inputs.sha }}"
-          echo $bucket_path
           echo "path=$bucket_path" >> $GITHUB_OUTPUT
+          $title="S3 Bucket Path"
+          echo "$title: $bucket_path"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$bucket_path"
 
   audit-version-changelog:
     # Make sure the changelog has been generated and the version is up to date
@@ -144,25 +153,30 @@ jobs:
 
       - name: "Audit Changelog Exists"
         run: |
+          $title="Audit Changelog Exists"
           if test -f ${{ inputs.changelog_path }}
           then
-            echo ${{ inputs.changelog_path }} exists.
+            $message="Specified file ${{ inputs.changelog_path }} - exists."
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
+            $message = "Specified file ${{ inputs.changelog_path }} does not exist! The changelog for this release must exists before running this workflow."
             git status
-            echo ${{ inputs.changelog_path }} does not exist!
-            echo The changelog for this release must exists before running this workflow.
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
           fi
 
       - name: "Check Current Version In Code"
         id: set_status
         run: |
+          $title="Check Current Version In Code"
           if grep -Fxq "current_version = ${{ inputs.version_number }}" .bumpversion.cfg
           then
-            echo Version set to ${{ inputs.version_number }}
+            $message="Version set to ${{ inputs.version_number }}."
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
+            $message="Version not set to ${{ inputs.version_number }}. The versionbump worklow must be complete before running this workflow."
             git status
-            echo Version not set to ${{ inputs.version_number }}.  versionbump must be complete before running this workflow.
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
           fi
 
@@ -203,8 +217,8 @@ jobs:
         with:
           name: ${{ inputs.version_number }}
           path: |
-            dist/
             ${{ inputs.changelog_path }}
+            dist/
           if-no-files-found: error
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
@@ -220,7 +234,9 @@ jobs:
     steps:
       - name: "Build Exists, Skip To Test"
         run: |
-          echo A build already exists for version ${{ inputs.version_number }}, skipping build job
+          $title="Build Exists in AWS S3 bucket"
+          $message="A build already exists for version ${{ inputs.version_number }}, skipping build job."
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
   unit:
     name: Unit Test
