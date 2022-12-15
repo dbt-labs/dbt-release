@@ -14,7 +14,7 @@
 #   Notes:
 #   <artifact_folder> - resolves based on `test_run` input value.
 #     test_run == true  will use "artifacts_testing"
-#     test_run == flase will use "artifacts"
+#     test_run == false will use "artifacts"
 #
 #   Examples:
 #     test_run == true  : "s3://core-team-artifacts/dbt-labs/dbt-core/artifacts_testing/1.2.3/ce98e6f067d9fa63a9b213bf99ebaf0c29d2b7eb/"
