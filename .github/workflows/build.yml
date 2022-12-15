@@ -198,7 +198,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: "Copy Artifact From S3 Via Cli"
+      - name: "Copy Artifact From S3 Via CLI"
         run: |
           aws s3 cp ${{ needs.resolve-aws-bucket.outputs.aws-s3-bucket }} . --recursive  # since it's an entire directory
 
