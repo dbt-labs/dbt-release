@@ -145,11 +145,41 @@ jobs:
         with:
           ref: ${{ inputs.sha }}
 
-      - name: "Audit Version And Parse Into Parts"
-        id: semver
+      - name: "Audit Version And Parse Into Parts - Current"
+        id: semver-current
         uses: dbt-labs/actions/parse-semver@v1
         with:
           version: ${{ inputs.version_number }}
+
+      - name: Use Parsed Output
+        run: |
+          echo version: ${{ steps.semver-current.outputs.version }}
+          echo base-version: ${{ steps.semver-current.outputs.base-version }}
+          echo major: ${{ steps.semver-current.outputs.major }}
+          echo minor: ${{ steps.semver-current.outputs.minor }}
+          echo patch: ${{ steps.semver-current.outputs.patch }}
+          echo pre-release: ${{ steps.semver-current.outputs.pre-release }}
+          echo pre-release-version: ${{ steps.semver-current.outputs.pre-release-version }}
+          echo pre-release-type: ${{ steps.semver-current.outputs.pre-release-type }}
+          echo is-pre-release: ${{ steps.semver-current.outputs.is-pre-release }}
+
+      - name: "Audit Version And Parse Into Parts - New"
+        id: semver-new
+        uses: dbt-labs/actions/parse-semver@users/alexander-smolyakov/parse-semver-fix-warnings
+        with:
+          version: ${{ inputs.version_number }}
+
+      - name: Use Parsed Output
+        run: |
+          echo version: ${{ steps.semver-new.outputs.version }}
+          echo base-version: ${{ steps.semver-new.outputs.base-version }}
+          echo major: ${{ steps.semver-new.outputs.major }}
+          echo minor: ${{ steps.semver-new.outputs.minor }}
+          echo patch: ${{ steps.semver-new.outputs.patch }}
+          echo pre-release: ${{ steps.semver-new.outputs.pre-release }}
+          echo pre-release-version: ${{ steps.semver-new.outputs.pre-release-version }}
+          echo pre-release-type: ${{ steps.semver-new.outputs.pre-release-type }}
+          echo is-pre-release: ${{ steps.semver-new.outputs.is-pre-release }}
 
       - name: "Audit Changelog Exists"
         run: |
