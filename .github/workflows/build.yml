@@ -1,22 +1,40 @@
 # **what?**
 # Build release artifacts and store them to S3 bucket if they do not already exist.
 #
+# Expected build artifact layout:
+#
+# ├── dist
+# │   ├── dbt-*.tar.gz
+# │   ├── dbt-*.whl
+# └── <release_notes>.md
+#
 # Build artifacts get stored in S3 to a bucket with the following directory structure:
-#       "s3://<s3_bucket>/<org>/<repo>/<version>/<commit>/"
-#   ex: "s3://core-team-artifacts/dbt-labs/dbt-core/1.2.3/ce98e6f067d9fa63a9b213bf99ebaf0c29d2b7eb/"
+#       "s3://<s3_bucket>/<org>/<repo>/<artifact_folder>/<version>/<commit>/"
+#
+#   Notes:
+#   <artifact_folder> - resolves based on `test_run` input value.
+#     test_run == true  will use "artifacts_testing"
+#     test_run == false will use "artifacts"
+#
+#   Examples:
+#     test_run == true  : "s3://core-team-artifacts/dbt-labs/dbt-core/artifacts_testing/1.2.3/ce98e6f067d9fa63a9b213bf99ebaf0c29d2b7eb/"
+#     test_run == false : "s3://core-team-artifacts/dbt-labs/dbt-core/artifacts/1.2.3/ce98e6f067d9fa63a9b213bf99ebaf0c29d2b7eb/"
 #
 # Inputs:
-#  sha: the commit to attache to this release
-#  version_number: version number for the release (ex: 1.2.3rc2)
-#  build_script_path: Path to the build script
-#  s3_bucket: Bucket name
+#  sha:                  The commit to attach to this release
+#  version_number:       The release version number (i.e. 1.0.0b1, 1.2.3rc2, 1.0.0)
+#  changelog_path:       Path to the changelog file for release notes
+#  build_script_path:    Path to the build script
+#  s3_bucket_name:       AWS S3 bucket name
 #  package_test_command: Command to use to check package runs
+#  test_run:             Test run (Bucket to upload the artifact)
 #
 # **why?**
 # Reusable and consistent build process.
 #
 # **when?**
-# Call when you have a commit to build and want to trigger a release.
+# Call after a successful version bump up.
+# This workflow expects that the package version is bumped and the associated changelog living in sources.
 #
 # Validation Checks
 #
@@ -51,18 +69,6 @@ on:
         required: true
         default: "dbt --version"
         type: string
-      audit_version_changelog:
-        required: false
-        default: false
-        type: boolean
-      check_build_exists:
-        required: false
-        default: false
-        type: boolean
-      upload_artifacts_aws:
-        required: false
-        default: false
-        type: boolean
       test_run:
         required: false
         default: true
@@ -84,154 +90,173 @@ permissions:
 
 env:
   ARTIFACT_RETENTION_DAYS: 2
+  AWS_REGION: "us-east-1"
   PYTHON_TARGET_VERSION: 3.8
+  NOTIFICATION_PREFIX: "[Build]"
 
 jobs:
   log-inputs:
     runs-on: ubuntu-latest
     steps:
-      - name: Print variables
+      - name: "[DEBUG] Print Variables"
         run: |
+          # WORKFLOW INPUTS
           echo The last commit sha in the release: ${{ inputs.sha }}
           echo The release version number:         ${{ inputs.version_number }}
           echo The changelog path:                 ${{ inputs.changelog_path }}
           echo The build script path:              ${{ inputs.build_script_path }}
           echo The s3 bucket name:                 ${{ inputs.s3_bucket_name }}
           echo The package test command:           ${{ inputs.package_test_command }}
-          echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
-          echo audit_version_changelog:            ${{ inputs.audit_version_changelog }}
-          echo check_build_exists:                 ${{ inputs.check_build_exists }}
-          echo upload_artifacts_aws:               ${{ inputs.upload_artifacts_aws }}
           echo Test run:                           ${{ inputs.test_run }}
+          # ENVIROMENT VARIABLES
+          echo GitHub artifact retention days:     ${{ env.ARTIFACT_RETENTION_DAYS }}
+          echo Amazon Web Services region:         ${{ env.AWS_REGION }}
+          echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
+          echo Notification prefix:                ${{ env.NOTIFICATION_PREFIX }}
 
   resolve-aws-bucket:
     runs-on: ubuntu-latest
-
     outputs:
       aws-s3-bucket: ${{ steps.bucket_path.outputs.path }}
 
     steps:
-      # include commit in path in case release commit gets updates on subsequent runs
-      - name: Resolve S3 Bucket Path
+      - name: "Resolve S3 Bucket Path"
         id: bucket_path
         run: |
+          # Resolve folder to upload/check build artifact
           artifact_folder="artifacts"
           if [[ ${{ inputs.test_run }} == true ]]
           then
             artifact_folder="artifacts_testing"
           fi
+          # Generate path for build artifact.
+          # Include commit in path in case release commit gets updates on subsequent runs
           bucket_path="s3://${{ inputs.s3_bucket_name }}/${{ github.repository }}/$artifact_folder/${{ inputs.version_number }}/${{ inputs.sha }}"
-          echo $bucket_path
           echo "path=$bucket_path" >> $GITHUB_OUTPUT
+          # Send notification
+          title="S3 Bucket Path"
+          echo "$title: $bucket_path"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$bucket_path"
 
   audit-version-changelog:
     # Make sure the changelog has been generated and the version is up to date
     runs-on: ubuntu-latest
-    if: inputs.audit_version_changelog
 
     steps:
-      - name: Check out the repository
+      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.sha }}
 
-      - name: Audit Version and Parse Into Parts
+      - name: "Audit Version And Parse Into Parts"
         id: semver
         uses: dbt-labs/actions/parse-semver@v1
         with:
           version: ${{ inputs.version_number }}
 
-      - name: Audit Changelog Exists
+      - name: "Audit Changelog Exists"
         run: |
+          title="Audit Changelog Exists"
           if test -f ${{ inputs.changelog_path }}
           then
-            echo ${{ inputs.changelog_path }} exists.
+            message="Specified file ${{ inputs.changelog_path }} - exists."
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
+            message="Specified file ${{ inputs.changelog_path }} does not exist! The changelog for this release must exist before running this workflow."
             git status
-            echo ${{ inputs.changelog_path }} does not exist!
-            echo The changelog for this release must exists before running this workflow.
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
           fi
 
-      - name: Check Current Version in code
+      - name: "Check Current Version In Code"
         id: set_status
         run: |
+          title="Check Current Version In Code"
           if grep -Fxq "current_version = ${{ inputs.version_number }}" .bumpversion.cfg
           then
-            echo Version set to ${{ inputs.version_number }}
+            message="Version set to ${{ inputs.version_number }}."
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
+            message="Version not set to ${{ inputs.version_number }}. The versionbump worklow must be complete before running this workflow."
             git status
-            echo Version not set to ${{ inputs.version_number }}.  versionbump must be complete before running this workflow.
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
           fi
 
   check-build-exists:
-    needs: [audit-version-changelog, resolve-aws-bucket]
     runs-on: ubuntu-latest
-    if: ${{ inputs.check_build_exists && (!failure() && !cancelled()) }}
+    needs: [audit-version-changelog, resolve-aws-bucket]
 
     outputs:
-      exists: ${{ steps.set_existence.outputs.exists }}
+      is_exists: ${{ steps.artifact_exists.outputs.is_exists }}
 
     steps:
-      - name: Configure AWS credentials from Test account
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: "Configure Aws Credentials"
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Copy Artifact from S3 via CLI
+      - name: "Copy Artifact From S3 Via CLI"
         run: |
           aws s3 cp ${{ needs.resolve-aws-bucket.outputs.aws-s3-bucket }} . --recursive  # since it's an entire directory
 
       - name: "[DEBUG] Display Structure Of All Downloaded Files"
         run: ls -R
 
-      - name: Check File Existence
-        id: check_files
+      - name: "Check Artifact Integrity"
+        id: artifact_integrity
         uses: andstor/file-existence-action@v2.0.0
         with:
           files: "${{ inputs.changelog_path }}, dist/*.tar.gz, dist/*.whl"
 
       # upload the files downloaded from S3 to artifacts so we don't have to keep
       # downloading from S3
-      - name: Upload Artifact From S3 To GitHub
-        if: ${{ (inputs.upload_artifacts_aws && steps.check_files.outputs.files_exists == 'true') && (!failure() && !cancelled()) }}
+      - name: "Upload Artifact From S3 To GitHub"
+        if: ${{ steps.artifact_integrity.outputs.files_exists == 'true' }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.version_number }}
           path: |
-            dist/
             ${{ inputs.changelog_path }}
+            dist/
           if-no-files-found: error
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
-      - name: Set Exisistence For Other Jobs
-        id: set_existence
-        run: echo "exists=${{ steps.check_files.outputs.files_exists }}" >> $GITHUB_STATE
+      - name: "[Notification] Upload Artifact From S3 To GitHub"
+        run: |
+          title="Artifact ${{ inputs.version_number }} uploaded from S3 To GitHub"
+          message="The build artifact is pulled from the S3 bucket and uploaded to the GitHub artifact storage."
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+
+      - name: "Set Artifact Existence For Subsequent Jobs"
+        id: artifact_exists
+        run: echo "is_exists=${{ steps.artifact_integrity.outputs.files_exists }}" >> $GITHUB_OUTPUT
 
   skip-build:
     runs-on: ubuntu-latest
     needs: [check-build-exists]
-    if: ${{ inputs.check_build_exist || needs.check-build-exists.outputs.exists == 'true' }}
+    if: ${{ needs.check-build-exists.outputs.is_exists == 'true' }}
 
     steps:
-      - name: Build Exists, Skip To Test
+      - name: "Build Exists, Skip To Test"
         run: |
-          echo A build already exists for version ${{ inputs.version_number }}, skipping build job
+          title="Build Exists in AWS S3 bucket"
+          message="A build already exists for version ${{ inputs.version_number }}, skipping build job."
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
   unit:
     name: Unit Test
-    needs: [audit-version-changelog, check-build-exists]
-    if: ${{ needs.check-build-exists.outputs.exists == 'false' && (!failure() && !cancelled()) }}
     runs-on: ubuntu-latest
+    needs: [audit-version-changelog, check-build-exists]
+    if: ${{ needs.check-build-exists.outputs.is_exists == 'false' }}
 
     env:
       TOXENV: "unit"
 
     steps:
-      - name: "Checkout Commit - ${{ inputs.sha }}"
+      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
         uses: actions/checkout@v3
         with:
           persist-credentials: false
@@ -277,8 +302,8 @@ jobs:
           python -m pip install --upgrade setuptools wheel twine check-wheel-contents
           python -m pip --version
 
-      - name: "Build Distributions"
-        run: ./scripts/build-dist.sh
+      - name: "Build Distributions - ./${{ inputs.build_script_path }}"
+        run: ./${{ inputs.build_script_path }}
 
       - name: "[DEBUG] Show Distributions"
         run: ls -lh dist/
@@ -347,25 +372,28 @@ jobs:
 
   upload-artifacts-aws:
     runs-on: ubuntu-latest
-    if: ${{ (!failure() && !cancelled()) && inputs.upload_artifacts_aws }}
     needs: [test-build, resolve-aws-bucket]
 
     steps:
-      - uses: actions/download-artifact@v3
+      - name: "Download Artifact ${{ inputs.version_number }}"
+        uses: actions/download-artifact@v3
         with:
-          name: ${{inputs.version_number}}
+          name: ${{ inputs.version_number }}
           path: .
 
-      - name: Display Structure Of All Downloaded Files
+      - name: "Display Structure Of All Downloaded Files"
         run: ls -R
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: "Configure Aws Credentials"
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Upload Artifacts to S3 via CLI
+      - name: "Upload Artifact To S3 Via CLI"
         run: |
           aws s3 cp . ${{ needs.resolve-aws-bucket.outputs.aws-s3-bucket }} --recursive  # since it's an entire directory
+          title="Artifact ${{ inputs.version_number }} uploaded to AWS S3 bucket"
+          message="S3 path: ${{ needs.resolve-aws-bucket.outputs.aws-s3-bucket }}"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"

@@ -196,7 +196,7 @@ jobs:
     if: needs.check-release-exists.outputs.draft_exists == 'false'
 
     steps:
-      - name: "Download Artifact ${{ inputs.version_number }} To dist Folder"
+      - name: "Download Artifact ${{ inputs.version_number }}"
         uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.version_number }}
