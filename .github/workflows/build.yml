@@ -85,6 +85,7 @@ permissions:
 env:
   ARTIFACT_RETENTION_DAYS: 2
   PYTHON_TARGET_VERSION: 3.8
+  AWS_REGION: "us-east-1"
 
 jobs:
   log-inputs:
@@ -179,7 +180,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: "Copy Artifact From S3 Via Cli"
         run: |
@@ -365,7 +366,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: "Upload Artifacts To S3 Via Cli"
         run: |
