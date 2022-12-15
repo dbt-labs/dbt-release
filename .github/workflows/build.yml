@@ -90,7 +90,7 @@ jobs:
   log-inputs:
     runs-on: ubuntu-latest
     steps:
-      - name: Print variables
+      - name: "[DEBUG] Print Variables"
         run: |
           echo The last commit sha in the release: ${{ inputs.sha }}
           echo The release version number:         ${{ inputs.version_number }}
@@ -112,7 +112,7 @@ jobs:
 
     steps:
       # include commit in path in case release commit gets updates on subsequent runs
-      - name: Resolve S3 Bucket Path
+      - name: "Resolve S3 Bucket Path"
         id: bucket_path
         run: |
           artifact_folder="artifacts"
@@ -130,18 +130,18 @@ jobs:
     if: inputs.audit_version_changelog
 
     steps:
-      - name: Check out the repository
+      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.sha }}
 
-      - name: Audit Version and Parse Into Parts
+      - name: "Audit Version And Parse Into Parts"
         id: semver
         uses: dbt-labs/actions/parse-semver@v1
         with:
           version: ${{ inputs.version_number }}
 
-      - name: Audit Changelog Exists
+      - name: "Audit Changelog Exists"
         run: |
           if test -f ${{ inputs.changelog_path }}
           then
@@ -153,7 +153,7 @@ jobs:
             exit 1
           fi
 
-      - name: Check Current Version in code
+      - name: "Check Current Version In Code"
         id: set_status
         run: |
           if grep -Fxq "current_version = ${{ inputs.version_number }}" .bumpversion.cfg
@@ -174,21 +174,21 @@ jobs:
       exists: ${{ steps.set_existence.outputs.exists }}
 
     steps:
-      - name: Configure AWS credentials from Test account
+      - name: "Configure Aws Credentials"
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Copy Artifact from S3 via CLI
+      - name: "Copy Artifact From S3 Via Cli"
         run: |
           aws s3 cp ${{ needs.resolve-aws-bucket.outputs.aws-s3-bucket }} . --recursive  # since it's an entire directory
 
       - name: "[DEBUG] Display Structure Of All Downloaded Files"
         run: ls -R
 
-      - name: Check File Existence
+      - name: "Check File Existence"
         id: check_files
         uses: andstor/file-existence-action@v2.0.0
         with:
@@ -196,7 +196,7 @@ jobs:
 
       # upload the files downloaded from S3 to artifacts so we don't have to keep
       # downloading from S3
-      - name: Upload Artifact From S3 To GitHub
+      - name: "Upload Artifact From S3 To Github"
         if: ${{ (inputs.upload_artifacts_aws && steps.check_files.outputs.files_exists == 'true') && (!failure() && !cancelled()) }}
         uses: actions/upload-artifact@v3
         with:
@@ -207,7 +207,7 @@ jobs:
           if-no-files-found: error
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
-      - name: Set Exisistence For Other Jobs
+      - name: "Set Exisistence For Other Jobs"
         id: set_existence
         run: echo "exists=${{ steps.check_files.outputs.files_exists }}" >> $GITHUB_STATE
 
@@ -217,7 +217,7 @@ jobs:
     if: ${{ inputs.check_build_exist || needs.check-build-exists.outputs.exists == 'true' }}
 
     steps:
-      - name: Build Exists, Skip To Test
+      - name: "Build Exists, Skip To Test"
         run: |
           echo A build already exists for version ${{ inputs.version_number }}, skipping build job
 
@@ -351,21 +351,22 @@ jobs:
     needs: [test-build, resolve-aws-bucket]
 
     steps:
-      - uses: actions/download-artifact@v3
+      - name: "Download Artifact ${{ inputs.version_number }}"
+        uses: actions/download-artifact@v3
         with:
-          name: ${{inputs.version_number}}
+          name: ${{ inputs.version_number }}
           path: .
 
-      - name: Display Structure Of All Downloaded Files
+      - name: "Display Structure Of All Downloaded Files"
         run: ls -R
 
-      - name: Configure AWS credentials
+      - name: "Configure Aws Credentials"
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Upload Artifacts to S3 via CLI
+      - name: "Upload Artifacts To S3 Via Cli"
         run: |
           aws s3 cp . ${{ needs.resolve-aws-bucket.outputs.aws-s3-bucket }} --recursive  # since it's an entire directory
