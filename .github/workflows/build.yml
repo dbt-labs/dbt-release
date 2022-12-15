@@ -188,7 +188,7 @@ jobs:
     needs: [audit-version-changelog, resolve-aws-bucket]
 
     outputs:
-      exists: ${{ steps.artifact_exists.outputs.exists }}
+      is_exists: ${{ steps.artifact_exists.outputs.is_exists }}
 
     steps:
       - name: "Configure Aws Credentials"
@@ -232,12 +232,12 @@ jobs:
 
       - name: "Set Artifact Existence For Subsequent Jobs"
         id: artifact_exists
-        run: echo "exists=${{ steps.artifact_integrity.outputs.files_exists }}" >> $GITHUB_STATE
+        run: echo "is_exists=${{ steps.artifact_integrity.outputs.files_exists }}" >> $GITHUB_OUTPUT
 
   skip-build:
     runs-on: ubuntu-latest
     needs: [check-build-exists]
-    if: ${{ needs.check-build-exists.outputs.exists == 'true' }}
+    if: ${{ needs.check-build-exists.outputs.is_exists == 'true' }}
 
     steps:
       - name: "Build Exists, Skip To Test"
@@ -250,7 +250,7 @@ jobs:
     name: Unit Test
     runs-on: ubuntu-latest
     needs: [audit-version-changelog, check-build-exists]
-    if: ${{ needs.check-build-exists.outputs.exists == 'false' }}
+    if: ${{ needs.check-build-exists.outputs.is_exists == 'false' }}
 
     env:
       TOXENV: "unit"
