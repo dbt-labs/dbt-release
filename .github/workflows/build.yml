@@ -225,6 +225,7 @@ jobs:
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
       - name: "[Notification] Upload Artifact From S3 To GitHub"
+        if: ${{ steps.artifact_integrity.outputs.files_exists == 'true' }}
         run: |
           title="Artifact ${{ inputs.version_number }} uploaded from S3 To GitHub"
           message="The build artifact is pulled from the S3 bucket and uploaded to the GitHub artifact storage."
