@@ -327,53 +327,53 @@ jobs:
             !dist/dbt-${{ inputs.version_number }}.tar.gz
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
-  # test-build:
-  #   runs-on: ubuntu-latest
-  #   needs: [build-packages]
+  test-build:
+    runs-on: ubuntu-latest
+    needs: [build-packages]
 
-  #   steps:
-  #     - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
-  #       uses: actions/setup-python@v4
-  #       with:
-  #         python-version: ${{ env.PYTHON_TARGET_VERSION }}
+    steps:
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
-  #     - name: "Install Python Dependencies"
-  #       run: |
-  #         python -m pip install --user --upgrade pip
-  #         python -m pip install --upgrade wheel
-  #         python -m pip --version
+      - name: "Install Python Dependencies"
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip install --upgrade wheel
+          python -m pip --version
 
-  #     - name: "Download Build Artifact - ${{ inputs.version_number }}"
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: ${{ inputs.version_number }}
-  #         path: .
+      - name: "Download Build Artifact - ${{ inputs.version_number }}"
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.version_number }}
+          path: .
 
-  #     - name: "[DEBUG] Display Structure Of All Downloaded Files"
-  #       run: ls -R
+      - name: "[DEBUG] Display Structure Of All Downloaded Files"
+        run: ls -R
 
-  #     - name: "[DEBUG] Show Distributions"
-  #       run: ls -lh dist/
+      - name: "[DEBUG] Show Distributions"
+        run: ls -lh dist/
 
-  #     - name: "Install Wheel Distributions"
-  #       run: |
-  #         find ./dist/*.whl -maxdepth 1 -type f | xargs python -m pip install --force-reinstall --find-links=dist/
+      - name: "Install Wheel Distributions"
+        run: |
+          find ./dist/*.whl -maxdepth 1 -type f | xargs python -m pip install --force-reinstall --find-links=dist/
 
-  #     - name: "[DEBUG] Check Wheel Distributions"
-  #       run: |
-  #         ${{ inputs.package_test_command }}
+      - name: "[DEBUG] Check Wheel Distributions"
+        run: |
+          ${{ inputs.package_test_command }}
 
-  #     - name: "Install Source Distributions"
-  #       run: |
-  #         find ./dist/*.gz -maxdepth 1 -type f | xargs python -m pip install --force-reinstall --find-links=dist/
+      - name: "Install Source Distributions"
+        run: |
+          find ./dist/*.gz -maxdepth 1 -type f | xargs python -m pip install --force-reinstall --find-links=dist/
 
-  #     - name: "[DEBUG] Check Source Distributions"
-  #       run: |
-  #         ${{ inputs.package_test_command }}
+      - name: "[DEBUG] Check Source Distributions"
+        run: |
+          ${{ inputs.package_test_command }}
 
   upload-artifacts-aws:
     runs-on: ubuntu-latest
-    needs: [build-packages, resolve-aws-bucket]
+    needs: [test-build, resolve-aws-bucket]
 
     steps:
       - name: "Download Artifact ${{ inputs.version_number }}"
