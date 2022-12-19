@@ -263,11 +263,11 @@ jobs:
           email="buildbot@fishtownanalytics.com"
           commit_message="Bumping version to ${{ inputs.version_number }} and generate changelog"
           #Commit changes to branch
-          git config user.name $user
-          git config user.email $email
+          git config user.name "$user"
+          git config user.email "$email"
           git pull
           git add .
-          git commit -m $commit_message
+          git commit -m "$commit_message"
           git push
 
   run-tests:
