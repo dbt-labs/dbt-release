@@ -191,6 +191,11 @@ jobs:
         run: |
           echo "/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin" >> $GITHUB_PATH
 
+      - name: Install spark dependencies
+        if: ${{ github.repository == 'dbt-labs/dbt-spark' }}
+        run: |
+          sudo apt-get install libsasl2-dev
+
       - name: Install Homebrew Packages
         if: needs.audit-changelog.outputs.exists == 'false'
         run: |
