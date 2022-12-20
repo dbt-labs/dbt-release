@@ -424,8 +424,8 @@ jobs:
           fi
           echo "final_sha=$commit_sha" >> $GITHUB_OUTPUT
 
-      - name: "Remove Temp Branch - ${{ needs.create-new-branch.outputs.BRANCH_NAME }}"
-        if: ${{ inputs.test_run == false }}
+      - name: Remove Temp Branch - ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+        if: ${{ inputs.test_run == false && needs.create-new-branch.outputs.BRANCH_NAME != '' }}
         run: |
           git push origin -d ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
 
