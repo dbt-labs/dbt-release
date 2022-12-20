@@ -262,7 +262,7 @@ jobs:
       - uses: actions/setup-python@v2
         if: needs.check-current-version.outputs.up_to_date == 'false'
         with:
-          python-version: ${{ env.PYTHON_TARGET_VERSION }}"
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
       - name: Install python dependencies
         if: needs.check-current-version.outputs.up_to_date == 'false'
