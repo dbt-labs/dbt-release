@@ -397,17 +397,17 @@ jobs:
           echo changelog exists: ${{ needs.audit-changelog.outputs.exists }}
           echo version up to date: ${{ needs.check-current-version.outputs.up_to_date }}
 
-      - name: Check out target branch - ${{ inputs.target_branch }}
+      - name: Check out target branch - ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
         if: ${{ inputs.test_run == true }}
         uses: actions/checkout@v3
         with:
-          ref: ${{ inputs.target_branch }}
+          ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
 
-      - name: Check out target branch - ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+      - name: Check out target branch - ${{ inputs.target_branch }}
         if: ${{ inputs.test_run == false }}
         uses: actions/checkout@v3
         with:
-          ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+          ref: ${{ inputs.target_branch }}
 
       - name: Log branch
         run: git status
