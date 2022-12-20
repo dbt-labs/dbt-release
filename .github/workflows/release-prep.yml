@@ -166,7 +166,7 @@ jobs:
 
   create-new-branch:
     outputs:
-      branch_name: ${{steps.variables.outputs.BRANCH_NAME}}
+      branch_name: ${{ steps.variables.outputs.BRANCH_NAME }}
     runs-on: ubuntu-latest
     needs: [audit-changelog, check-current-version]
     if: needs.audit-changelog.outputs.exists == 'false' || needs.check-current-version.outputs.up_to_date == 'false'
@@ -190,8 +190,8 @@ jobs:
 
       - name: Create branch
         run: |
-          git checkout -b ${{steps.variables.outputs.BRANCH_NAME}}
-          git push -u origin ${{steps.variables.outputs.BRANCH_NAME}}
+          git checkout -b ${{ steps.variables.outputs.BRANCH_NAME }}
+          git push -u origin ${{ steps.variables.outputs.BRANCH_NAME }}
 
       - name: Job Output
         run: echo BRANCH_NAME ${{ steps.variables.outputs.BRANCH_NAME }}
@@ -204,7 +204,7 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v3
         with:
-          ref: ${{needs.create-new-branch.outputs.BRANCH_NAME}}
+          ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
 
       - name: Add Homebrew to PATH
         run: |
