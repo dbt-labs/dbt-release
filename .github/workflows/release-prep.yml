@@ -234,9 +234,13 @@ jobs:
         run: |
           if [[ ${{ needs.audit-changelog.outputs.is_prerelease }} -eq 1 ]]
           then
-            changie batch ${{ needs.audit-changelog.outputs.base_version }} --move-dir '${{ needs.audit-changelog.outputs.base_version }}' --prerelease ${{ needs.audit-changelog.outputs.prerelease }}
+            changie batch ${{ needs.audit-changelog.outputs.base_version }} \ 
+              --move-dir '${{ needs.audit-changelog.outputs.base_version }}' \
+              --prerelease ${{ needs.audit-changelog.outputs.prerelease }}
           else
-            changie batch ${{ needs.audit-changelog.outputs.base_version }}  --include '${{ needs.audit-changelog.outputs.base_version }}' --remove-prereleases
+            changie batch ${{ needs.audit-changelog.outputs.base_version }} \ 
+              --include '${{ needs.audit-changelog.outputs.base_version }}' \
+              --remove-prereleases
           fi
           changie merge
           git status
