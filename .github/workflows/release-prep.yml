@@ -59,6 +59,7 @@ env:
 jobs:
   log-inputs:
     runs-on: ubuntu-latest
+
     steps:
       - name: "[DEBUG] Print Variables"
         run: |
@@ -73,6 +74,7 @@ jobs:
 
   audit-changelog:
     runs-on: ubuntu-latest
+
     outputs:
       changelog_path: ${{ steps.set_path.outputs.changelog_path }}
       exists: ${{ steps.set_existence.outputs.exists }}
@@ -124,6 +126,7 @@ jobs:
 
   audit-version-in-code:
     runs-on: ubuntu-latest
+
     outputs:
       up_to_date: ${{ steps.set_status.outputs.up_to_date }}
 
@@ -168,11 +171,12 @@ jobs:
           echo The version has already been bumped to ${{ inputs.version_number }}, skipping version bump
 
   create-temp-branch:
-    outputs:
-      branch_name: ${{ steps.variables.outputs.branch_name }}
     runs-on: ubuntu-latest
     needs: [audit-changelog, audit-version-in-code]
     if: needs.audit-changelog.outputs.exists == 'false' || needs.audit-version-in-code.outputs.up_to_date == 'false'
+
+    outputs:
+      branch_name: ${{ steps.variables.outputs.branch_name }}
 
     steps:
       - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
@@ -376,11 +380,6 @@ jobs:
           commit_message_template: "[Automated] Merged {source_ref} into target {target_branch} during release process"
 
   determine-release-sha:
-    # Get the sha that will be released.  If the changelog already exists on the input sha and the version has already been bumped,
-    # then it is what we will release. Otherwise we generated a changelog and did the version bump in this workflow and there is a
-    # new sha to use from the merge we just did.  Grab that here instead.
-    outputs:
-      final_sha: ${{ steps.resolve_commit_sha.outputs.release_sha }}
     runs-on: ubuntu-latest
     needs:
       [
@@ -391,6 +390,12 @@ jobs:
       ]
     # always run this job, regardness of if the dependant jobs were skipped
     if: always()
+
+    # Get the sha that will be released.  If the changelog already exists on the input sha and the version has already been bumped,
+    # then it is what we will release. Otherwise we generated a changelog and did the version bump in this workflow and there is a
+    # new sha to use from the merge we just did.  Grab that here instead.
+    outputs:
+      final_sha: ${{ steps.resolve_commit_sha.outputs.release_sha }}
 
     steps:
       - name: "[Debug] Print Variables"
