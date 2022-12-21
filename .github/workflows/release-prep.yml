@@ -163,6 +163,17 @@ jobs:
           title="Version check"
           message="The version in the codebase is equal to the provided version"
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+      
+      - name: "[Notification] Check Current Version In Code"
+        run: |
+          title="Version check"
+          if [[ ${{ steps.version-check.outputs.up_to_date }} == true ]]
+          then
+            message="The version in the codebase is equal to the provided version"
+          else
+            message="The version in the codebase differs from the provided version"
+          fi
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "[DEBUG] Print Outputs"
         run: |
