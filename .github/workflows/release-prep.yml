@@ -400,13 +400,19 @@ jobs:
           echo changelog_exists: ${{ needs.audit-changelog.outputs.exists }}
           echo up_to_date:       ${{ needs.audit-version-in-code.outputs.up_to_date }}
 
-      - name: "Check Out Temp Branch - ${{ needs.create-temp-branch.outputs.branch_name }}"
-        if: ${{ inputs.test_run == true }}
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.create-temp-branch.outputs.branch_name }}
+      - name: "Resolve Branch To Checkout"
+        id: resolve_branch
+        run: |
+          branch=""
+          if [[ ${{ inputs.test_run == true }} ]]
+          then
+            branch=${{ needs.create-temp-branch.outputs.branch_name }}
+          else
+            branch=${{ inputs.target_branch }}
+          fi
+          echo "target_branch=$branch" >> $GITHUB_OUTPUT
 
-      - name: "Check Out Target Branch - ${{ inputs.target_branch }}"
+      - name: "Check Out Target Branch - ${{ steps.resolve_branch.outputs.target_branch  }}"
         if: ${{ inputs.test_run == false }}
         uses: actions/checkout@v3
         with:
