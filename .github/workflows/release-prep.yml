@@ -353,7 +353,7 @@ jobs:
   #     - name: Run tests
   #       run: tox
 
-  merge-for-release:
+  merge-changes-into-target-branch:
     runs-on: ubuntu-latest
     needs: [run-unit-tests, create-temp-branch]
     if: ${{ inputs.test_run == false }}
@@ -385,7 +385,7 @@ jobs:
     needs:
       [
         create-temp-branch,
-        merge-for-release,
+        merge-changes-into-target-branch,
         audit-changelog,
         audit-version-in-code,
       ]
