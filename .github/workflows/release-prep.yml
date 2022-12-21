@@ -2,15 +2,24 @@
 # Perform the version bump, generate the changelog and run tests.
 #
 # Inputs:
-#  sha: the commit to attach to this release
-#  version_number: version number for the release (ex: 1.2.3rc2)
-#  target_branch: The branch that we will release from
+#  sha:            The commit to attach to this release
+#  version_number: The release version number (i.e. 1.0.0b1, 1.2.3rc2, 1.0.0)
+#  target_branch:  The branch that we will release from
+#  test_run:       Test run (The temp branch will be used for release)
 #
 # Outputs:
-#   final_sha: The sha that will actually be released.  This can differ from the
-#              input sha if adding a version bump and/or changelog
-#   changelog_path: path to the changelog file (ex .changes/1.2.3-rc1.md)
+#   final_sha:      The sha that will actually be released.  This can differ from the
+#                   input sha if adding a version bump and/or changelog
+#   changelog_path: Path to the changelog file (ex .changes/1.2.3-rc1.md)
 #
+# Branching strategy:
+#  - During execution workflow execution the temp branch will be genetated.
+#  - For normal runs the temp branch will be removed once changes were merged to target branch;
+#  - For test runs we will keep temp brnach and will use it for release;
+#  Naming strategy:
+#  - For normal runs: prep-release/${{ inputs.version_number }}_$GITHUB_RUN_ID
+#  - For test runs: prep-release/test-run/${{ inputs.version_number }}_$GITHUB_RUN_ID
+# 
 # **why?**
 # Reusable and consistent GitHub release process.
 #
