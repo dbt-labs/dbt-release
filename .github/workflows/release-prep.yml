@@ -37,6 +37,10 @@ on:
       target_branch:
         required: true
         type: string
+      test_run:
+        required: false
+        default: true
+        type: boolean
     outputs:
       final_sha:
         description: The new commit that includes the changelog and version bump.
@@ -62,6 +66,7 @@ jobs:
           echo The last commit sha in the release:   ${{ inputs.sha }}
           echo The release version number:           ${{ inputs.version_number }}
           echo The branch that we will release from: ${{ inputs.target_branch }}
+          echo Test run:                             ${{ inputs.test_run }}
           # ENVIROMENT VARIABLES
           echo Python target version:                ${{ env.PYTHON_TARGET_VERSION }}
           echo Notification prefix:                  ${{ env.NOTIFICATION_PREFIX }}
@@ -161,7 +166,7 @@ jobs:
 
   create-new-branch:
     outputs:
-      branch_name: ${{steps.variables.outputs.BRANCH_NAME}}
+      branch_name: ${{ steps.variables.outputs.BRANCH_NAME }}
     runs-on: ubuntu-latest
     needs: [audit-changelog, check-current-version]
     if: needs.audit-changelog.outputs.exists == 'false' || needs.check-current-version.outputs.up_to_date == 'false'
@@ -172,15 +177,21 @@ jobs:
         with:
           ref: ${{ inputs.sha }}
 
-      - name: Set version value
+      - name: "Generate Branch Name"
         id: variables
         run: |
-          echo "BRANCH_NAME=prep-release/${{ inputs.version_number }}_$GITHUB_RUN_ID" >> $GITHUB_OUTPUT
+          name="prep-release/"
+          if [[ ${{ inputs.test_run }} == true ]]
+          then
+            name+="test-run/"
+          fi
+          name+="${{ inputs.version_number }}_$GITHUB_RUN_ID"
+          echo "BRANCH_NAME=$name" >> $GITHUB_OUTPUT
 
       - name: Create branch
         run: |
-          git checkout -b ${{steps.variables.outputs.BRANCH_NAME}}
-          git push -u origin ${{steps.variables.outputs.BRANCH_NAME}}
+          git checkout -b ${{ steps.variables.outputs.BRANCH_NAME }}
+          git push -u origin ${{ steps.variables.outputs.BRANCH_NAME }}
 
       - name: Job Output
         run: echo BRANCH_NAME ${{ steps.variables.outputs.BRANCH_NAME }}
@@ -193,7 +204,7 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v3
         with:
-          ref: ${{needs.create-new-branch.outputs.BRANCH_NAME}}
+          ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
 
       - name: Add Homebrew to PATH
         run: |
@@ -251,7 +262,7 @@ jobs:
       - uses: actions/setup-python@v2
         if: needs.check-current-version.outputs.up_to_date == 'false'
         with:
-          python-version: ${{ env.PYTHON_TARGET_VERSION }}"
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
       - name: Install python dependencies
         if: needs.check-current-version.outputs.up_to_date == 'false'
@@ -283,37 +294,66 @@ jobs:
           git commit -m "$commit_message"
           git push
 
-  run-tests:
-    # TODO: this used to specify just unit tests, if we don't specify TOXENV it will run all tests - seems preferable?
+  run-unit-tests:
     runs-on: ubuntu-latest
     needs: [create-new-branch, generate-changelog-bump-version]
 
+    env:
+      TOXENV: unit
+
     steps:
-      - name: Skip for now
-        run: echo Not set up for testing yet
-      # - name: Check out the repository
-      #   uses: actions/checkout@v2
-      #   with:
-      #     ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+      - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-new-branch.outputs.BRANCH_NAME }}"
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
 
-      # - name: Set up Python
-      #   uses: actions/setup-python@v2
-      #   with:
-      #     python-version: ${{ env.PYTHON_TARGET_VERSION }}"
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
-      # - name: Install python dependencies
-      #   run: |
-      #     pip install --user --upgrade pip
-      #     pip install tox
-      #     pip --version
-      #     tox --version
+      - name: "Install Python Dependencies"
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip install tox
+          python -m pip --version
+          python -m tox --version
 
-      # - name: Run tox
-      #   run: tox
+      - name: "Run Tox"
+        run: tox
+
+  # run-integration-tests:
+  #   runs-on: ubuntu-latest
+  #   needs: [create-new-branch, generate-changelog-bump-version]
+
+  #   env:
+  #     TOXENV: integration
+
+  #   steps:
+  #     - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-new-branch.outputs.BRANCH_NAME }}"
+  #       uses: actions/checkout@v3
+  #       with:
+  #         ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+
+  #     - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: ${{ env.PYTHON_TARGET_VERSION }}
+
+  #     - name: "Install python tools"
+  #       run: |
+  #         python -m pip install --user --upgrade pip
+  #         python -m pip --version
+  #         python -m pip install tox
+  #         tox --version
+
+  #     - name: Run tests
+  #       run: tox
 
   merge-for-release:
     runs-on: ubuntu-latest
-    needs: [run-tests, create-new-branch]
+    needs: [run-unit-tests, create-new-branch]
+    if: ${{ inputs.test_run == false }}
 
     steps:
       - name: Log Values
@@ -357,7 +397,14 @@ jobs:
           echo changelog exists: ${{ needs.audit-changelog.outputs.exists }}
           echo version up to date: ${{ needs.check-current-version.outputs.up_to_date }}
 
-      - name: Check out target branch
+      - name: Check out target branch - ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+        if: ${{ inputs.test_run == true }}
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+
+      - name: Check out target branch - ${{ inputs.target_branch }}
+        if: ${{ inputs.test_run == false }}
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.target_branch }}
@@ -376,6 +423,11 @@ jobs:
             commit_sha=${{ inputs.sha }}
           fi
           echo "final_sha=$commit_sha" >> $GITHUB_OUTPUT
+
+      - name: Remove Temp Branch - ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+        if: ${{ inputs.test_run == false && needs.create-new-branch.outputs.BRANCH_NAME != '' }}
+        run: |
+          git push origin -d ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
 
       - name: Job Output
         run: echo final_sha ${{ steps.final_sha.outputs.final_sha }}
