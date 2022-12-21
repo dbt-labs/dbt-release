@@ -418,7 +418,6 @@ jobs:
           echo "target_branch=$branch" >> $GITHUB_OUTPUT
 
       - name: "Checkout Resolved Branch - ${{ steps.resolve_branch.outputs.target_branch }}"
-        if: ${{ inputs.test_run == false }}
         uses: actions/checkout@v3
         with:
           ref: ${{ steps.resolve_branch.outputs.target_branch }}
