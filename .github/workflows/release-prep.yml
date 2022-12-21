@@ -104,7 +104,10 @@ jobs:
           else
             path+="{{ steps.semver.outputs.version }}.md"
           fi
+          # Send notification
           echo "changelog_path=$path" >> $GITHUB_OUTPUT
+          title="Changelog path"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$changelog_path"
 
       - name: "Set Changelog Existence For Subsequent Jobs"
         id: set_existence
@@ -115,6 +118,10 @@ jobs:
             does_exist=true
           fi
           echo "exists=$does_exist">> $GITHUB_OUTPUT
+          # Send notification
+          title="Changelog exists"
+          message="Changelof for ${{ inputs.version_number }} alredy exists"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "[DEBUG] Print Outputs"
         run: |
@@ -145,6 +152,10 @@ jobs:
             is_updated=true
           fi
           echo "up_to_date=$is_updated" >> $GITHUB_OUTPUT
+          # Send notification
+          title="Version check"
+          message="The version in the codebase is equal to the provided version"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "[DEBUG] Print Outputs"
         run: |
@@ -158,7 +169,10 @@ jobs:
     steps:
       - name: "Changelog Exists, Skip Generating New Changelog"
         run: |
-          echo A changelog file already exists at ${{ needs.audit-changelog.outputs.exists }}, skipping generating changelog
+          # Send notification
+          title="Skip changelog generation"
+          message="A changelog file already exists at ${{ needs.audit-changelog.outputs.exists }}, skipping generating changelog"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
   skip-version-bump:
     runs-on: ubuntu-latest
@@ -168,7 +182,10 @@ jobs:
     steps:
       - name: "Version Already Bumped"
         run: |
-          echo The version has already been bumped to ${{ inputs.version_number }}, skipping version bump
+          # Send notification
+          title="Skip version bump"
+          message="The version has already been bumped to ${{ inputs.version_number }}, skipping version bump"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
   create-temp-branch:
     runs-on: ubuntu-latest
@@ -199,6 +216,13 @@ jobs:
         run: |
           git checkout -b ${{ steps.variables.outputs.branch_name }}
           git push -u origin ${{ steps.variables.outputs.branch_name }}
+      
+      - name: "[Notification] Temp branch created"
+        run: |
+          # Send notification
+          title="Temp branch generated"
+          message="The ${{ steps.variables.outputs.branch_name }} branch created"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "[DEBUG] Print Outputs"
         run: |
@@ -240,6 +264,8 @@ jobs:
           fi
           changie merge
           git status
+      
+
 
       # this step will fail on whitespace errors but also correct them
       - name: "Remove Trailing Whitespace Via Pre-commit"
@@ -258,11 +284,14 @@ jobs:
       - name: "Check Changelog Created Successfully"
         if: needs.audit-changelog.outputs.exists == 'false'
         run: |
+          title="Changelog"
           if [[ -f ${{ needs.audit-changelog.outputs.changelog_path }} ]]
           then
-            echo Changelog file created successfully
-          else
-            echo Changelog failed to generate.  Exiting.
+            message="Changelog file created successfully"
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+          else            
+            message="Changelog failed to generate"
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
           fi
 
@@ -286,6 +315,13 @@ jobs:
           python -m pip install -r dev-requirements.txt
           env/bin/bumpversion --allow-dirty --new-version ${{ inputs.version_number }} major
           git status
+      
+      - name: "[Notification] Bump Version To ${{ inputs.version_number }}"
+        if: needs.audit-version-in-code.outputs.up_to_date == 'false'
+        run: |
+          title="Version bump"
+          message="Version successfully bumped in codebase to ${{ inputs.version_number }}"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "Commit & Push Changes"
         run: |
@@ -416,6 +452,12 @@ jobs:
             branch=${{ inputs.target_branch }}
           fi
           echo "target_branch=$branch" >> $GITHUB_OUTPUT
+      
+      - name: "[Notification] Resolve Branch To Checkout"
+        run: |
+          title="Branch pick"
+          message="The ${{ steps.resolve_branch.outputs.target_branch }} branch will be used for release"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "Checkout Resolved Branch - ${{ steps.resolve_branch.outputs.target_branch }}"
         uses: actions/checkout@v3
@@ -436,6 +478,12 @@ jobs:
             commit_sha=${{ inputs.sha }}
           fi
           echo "release_sha=$commit_sha" >> $GITHUB_OUTPUT
+      
+      - name: "[Notification] Resolve Commit SHA For Release"
+        run: |
+          title="Release commit pick"
+          message="The ${{ steps.Commit.outputs.release_sha }} branch will be used for release"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "Remove Temp Branch - ${{ needs.create-temp-branch.outputs.branch_name }}"
         if: ${{ inputs.test_run == false && needs.create-temp-branch.outputs.branch_name != '' }}
