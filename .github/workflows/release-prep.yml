@@ -109,12 +109,12 @@ jobs:
       - name: "Set Changelog Existence For Subsequent Jobs"
         id: set_existence
         run: |
-          if test -f ${{ steps.set_path.outputs.changelog_path }}
+          does_exist=false
+          if [[ test -f ${{ steps.set_path.outputs.changelog_path }} ]]
           then
-            echo "exists=true">> $GITHUB_OUTPUT
-          else
-            echo "exists=false">> $GITHUB_OUTPUT
+            does_exist=true
           fi
+          echo "exists=$does_exist">> $GITHUB_OUTPUT
 
       - name: "[DEBUG] Print Outputs"
         run: |
@@ -128,7 +128,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      up_to_date: ${{ steps.set_status.outputs.up_to_date }}
+      up_to_date: ${{ steps.version-check.outputs.up_to_date }}
 
     steps:
       - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
@@ -137,18 +137,18 @@ jobs:
           ref: ${{ inputs.sha }}
 
       - name: "Check Current Version In Code"
-        id: set_status
+        id: version-check
         run: |
-          if grep -Fxq "current_version = ${{ inputs.version_number }}" .bumpversion.cfg
+          is_updated=false
+          if [[ grep -Fxq "current_version = ${{ inputs.version_number }}" .bumpversion.cfg ]]
           then
-            echo "up_to_date=true" >> $GITHUB_OUTPUT
-          else
-            echo "up_to_date=false" >> $GITHUB_OUTPUT
+            is_updated=true
           fi
+          echo "up_to_date=$is_updated" >> $GITHUB_OUTPUT
 
       - name: "[DEBUG] Print Outputs"
         run: |
-          echo up_to_date: ${{ steps.set_status.outputs.up_to_date }}
+          echo up_to_date: ${{ steps.version-check.outputs.up_to_date }}
 
   skip-generate-changelog:
     runs-on: ubuntu-latest
