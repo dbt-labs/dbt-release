@@ -110,7 +110,7 @@ jobs:
         id: set_existence
         run: |
           does_exist=false
-          if [[ test -f ${{ steps.set_path.outputs.changelog_path }} ]]
+          if test -f ${{ steps.set_path.outputs.changelog_path }}
           then
             does_exist=true
           fi
@@ -140,7 +140,7 @@ jobs:
         id: version-check
         run: |
           is_updated=false
-          if [[ grep -Fxq "current_version = ${{ inputs.version_number }}" .bumpversion.cfg ]]
+          if grep -Fxq "current_version = ${{ inputs.version_number }}" .bumpversion.cfg
           then
             is_updated=true
           fi
