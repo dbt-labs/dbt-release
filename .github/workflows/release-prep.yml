@@ -412,11 +412,11 @@ jobs:
           fi
           echo "target_branch=$branch" >> $GITHUB_OUTPUT
 
-      - name: "Check Out Target Branch - ${{ steps.resolve_branch.outputs.target_branch  }}"
+      - name: "Check Out Target Branch - ${{ steps.resolve_branch.outputs.target_branch }}"
         if: ${{ inputs.test_run == false }}
         uses: actions/checkout@v3
         with:
-          ref: ${{ inputs.target_branch }}
+          ref: ${{ steps.resolve_branch.outputs.target_branch }}
 
       - name: "[Debug] Log Branch"
         run: git status
