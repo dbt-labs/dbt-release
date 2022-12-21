@@ -118,9 +118,16 @@ jobs:
             does_exist=true
           fi
           echo "exists=$does_exist">> $GITHUB_OUTPUT
-          # Send notification
+        
+      - name: "[Notification] Set Changelog Existence For Subsequent Jobs"
+        run: |
           title="Changelog exists"
-          message="Changelof for ${{ inputs.version_number }} alredy exists"
+          if [[ ${{ steps.set_existence.outputs.exists }} == true ]]
+          then
+            message="Changelog file for ${{ inputs.version_number }} alredy exists"
+          else
+            message="Changelog file for ${{ inputs.version_number }} doesn't exists"
+          fi
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "[DEBUG] Print Outputs"
@@ -482,7 +489,7 @@ jobs:
       - name: "[Notification] Resolve Commit SHA For Release"
         run: |
           title="Release commit pick"
-          message="The ${{ steps.Commit.outputs.release_sha }} branch will be used for release"
+          message="The ${{ steps.resolve_commit_sha.outputs.release_sha }} commit will be used for release"
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "Remove Temp Branch - ${{ needs.create-temp-branch.outputs.branch_name }}"
