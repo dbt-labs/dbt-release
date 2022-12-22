@@ -427,12 +427,12 @@ jobs:
         run: |
           sudo apt-get install libsasl2-dev
 
+      - name: "Setup Enviroment Variables - ./${{ inputs.env_setup_script_path }}"
+        run: source ./${{ inputs.env_setup_script_path }}
+
       - name: "Set Up Postgres (Linux)"
         if: ${{ github.repository == 'dbt-labs/dbt-core-release-test' }}
         uses: ./.github/actions/setup-postgres-linux
-
-      - name: "Setup Enviroment Variables - ./${{ inputs.env_setup_script_path }}"
-        run: source ./${{ inputs.env_setup_script_path }}
 
       - name: Run tests
         run: tox
