@@ -2,15 +2,24 @@
 # Perform the version bump, generate the changelog and run tests.
 #
 # Inputs:
-#  sha: the commit to attach to this release
-#  version_number: version number for the release (ex: 1.2.3rc2)
-#  target_branch: The branch that we will release from
+#  sha:            The commit to attach to this release
+#  version_number: The release version number (i.e. 1.0.0b1, 1.2.3rc2, 1.0.0)
+#  target_branch:  The branch that we will release from
+#  test_run:       Test run (The temp branch will be used for release)
 #
 # Outputs:
-#   final_sha: The sha that will actually be released.  This can differ from the
-#              input sha if adding a version bump and/or changelog
-#   changelog_path: path to the changelog file (ex .changes/1.2.3-rc1.md)
+#   final_sha:      The sha that will actually be released.  This can differ from the
+#                   input sha if adding a version bump and/or changelog
+#   changelog_path: Path to the changelog file (ex .changes/1.2.3-rc1.md)
 #
+# Branching strategy:
+#  - During execution workflow execution the temp branch will be genetated.
+#  - For normal runs the temp branch will be removed once changes were merged to target branch;
+#  - For test runs we will keep temp brnach and will use it for release;
+#  Naming strategy:
+#  - For normal runs: prep-release/${{ inputs.version_number }}_$GITHUB_RUN_ID
+#  - For test runs: prep-release/test-run/${{ inputs.version_number }}_$GITHUB_RUN_ID
+# 
 # **why?**
 # Reusable and consistent GitHub release process.
 #
@@ -44,7 +53,7 @@ on:
     outputs:
       final_sha:
         description: The new commit that includes the changelog and version bump.
-        value: ${{ jobs.get-release-sha.outputs.final_sha }}
+        value: ${{ jobs.determine-release-sha.outputs.final_sha }}
       changelog_path:
         description: The path to the changelog for this version
         value: ${{ jobs.audit-changelog.outputs.changelog_path }}
@@ -59,8 +68,9 @@ env:
 jobs:
   log-inputs:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Print variables
+      - name: "[DEBUG] Print Variables"
         run: |
           # WORKFLOW INPUTS
           echo The last commit sha in the release:   ${{ inputs.sha }}
@@ -73,6 +83,7 @@ jobs:
 
   audit-changelog:
     runs-on: ubuntu-latest
+
     outputs:
       changelog_path: ${{ steps.set_path.outputs.changelog_path }}
       exists: ${{ steps.set_existence.outputs.exists }}
@@ -81,18 +92,18 @@ jobs:
       is_prerelease: ${{ steps.semver.outputs.is-pre-release }}
 
     steps:
-      - name: Check out the repository
+      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.sha }}
 
-      - name: Audit Version and Parse Into Parts
+      - name: "Audit Version And Parse Into Parts"
         id: semver
         uses: dbt-labs/actions/parse-semver@v1
         with:
           version: ${{ inputs.version_number }}
 
-      - name: Set Changelog Path
+      - name: "Set Changelog Path"
         id: set_path
         run: |
           path=".changes/"
@@ -102,49 +113,80 @@ jobs:
           else
             path+="{{ steps.semver.outputs.version }}.md"
           fi
+          # Send notification
           echo "changelog_path=$path" >> $GITHUB_OUTPUT
+          title="Changelog path"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$changelog_path"
 
-      - name: Set Changelog Existence for Other Jobs
+      - name: "Set Changelog Existence For Subsequent Jobs"
         id: set_existence
         run: |
+          does_exist=false
           if test -f ${{ steps.set_path.outputs.changelog_path }}
           then
-            echo "exists=true">> $GITHUB_OUTPUT
-          else
-            echo "exists=false">> $GITHUB_OUTPUT
+            does_exist=true
           fi
-
-      - name: Job Output
+          echo "exists=$does_exist">> $GITHUB_OUTPUT
+        
+      - name: "[Notification] Set Changelog Existence For Subsequent Jobs"
         run: |
-          echo changelog_path ${{ steps.set_path.outputs.changelog_path }}
-          echo exists ${{ steps.set_existence.outputs.exists }}
-          echo base_version ${{ steps.semver.outputs.base-version }}
-          echo prerelease ${{ steps.semver.outputs.pre-release }}
-          echo is_prerelease ${{ steps.semver.outputs.is-pre-release }}
+          title="Changelog exists"
+          if [[ ${{ steps.set_existence.outputs.exists }} == true ]]
+          then
+            message="Changelog file for ${{ inputs.version_number }} alredy exists"
+          else
+            message="Changelog file for ${{ inputs.version_number }} doesn't exist"
+          fi
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
-  check-current-version:
+      - name: "[DEBUG] Print Outputs"
+        run: |
+          echo changelog_path: ${{ steps.set_path.outputs.changelog_path }}
+          echo exists:         ${{ steps.set_existence.outputs.exists }}
+          echo base_version:   ${{ steps.semver.outputs.base-version }}
+          echo prerelease:     ${{ steps.semver.outputs.pre-release }}
+          echo is_prerelease:  ${{ steps.semver.outputs.is-pre-release }}
+
+  audit-version-in-code:
     runs-on: ubuntu-latest
+
     outputs:
-      up_to_date: ${{ steps.set_status.outputs.up_to_date }}
+      up_to_date: ${{ steps.version-check.outputs.up_to_date }}
 
     steps:
-      - name: Check out the repository
+      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.sha }}
 
-      - name: Check Current Version in code
-        id: set_status
+      - name: "Check Current Version In Code"
+        id: version-check
         run: |
+          is_updated=false
           if grep -Fxq "current_version = ${{ inputs.version_number }}" .bumpversion.cfg
           then
-            echo "up_to_date=true" >> $GITHUB_OUTPUT
-          else
-            echo "up_to_date=false" >> $GITHUB_OUTPUT
+            is_updated=true
           fi
+          echo "up_to_date=$is_updated" >> $GITHUB_OUTPUT
+          # Send notification
+          title="Version check"
+          message="The version in the codebase is equal to the provided version"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+      
+      - name: "[Notification] Check Current Version In Code"
+        run: |
+          title="Version check"
+          if [[ ${{ steps.version-check.outputs.up_to_date }} == true ]]
+          then
+            message="The version in the codebase is equal to the provided version"
+          else
+            message="The version in the codebase differs from the provided version"
+          fi
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
-      - name: Job Output
-        run: echo up_to_date ${{ steps.set_status.outputs.up_to_date }}
+      - name: "[DEBUG] Print Outputs"
+        run: |
+          echo up_to_date: ${{ steps.version-check.outputs.up_to_date }}
 
   skip-generate-changelog:
     runs-on: ubuntu-latest
@@ -152,27 +194,36 @@ jobs:
     if: needs.audit-changelog.outputs.exists == 'true'
 
     steps:
-      - name: Changelog Exists, Skip Generating New Changelog
-        run: echo A changelog file already exists at ${{ needs.audit-changelog.outputs.exists }}, skipping generating changelog
+      - name: "Changelog Exists, Skip Generating New Changelog"
+        run: |
+          # Send notification
+          title="Skip changelog generation"
+          message="A changelog file already exists at ${{ needs.audit-changelog.outputs.exists }}, skipping generating changelog"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
   skip-version-bump:
     runs-on: ubuntu-latest
-    needs: [check-current-version]
-    if: needs.check-current-version.outputs.up_to_date == 'true'
+    needs: [audit-version-in-code]
+    if: needs.audit-version-in-code.outputs.up_to_date == 'true'
 
     steps:
-      - name: Version Already bumped
-        run: echo The version has already been bumped to ${{ inputs.version_number }}, skipping version bump
+      - name: "Version Already Bumped"
+        run: |
+          # Send notification
+          title="Skip version bump"
+          message="The version has already been bumped to ${{ inputs.version_number }}, skipping version bump"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
-  create-new-branch:
-    outputs:
-      branch_name: ${{ steps.variables.outputs.BRANCH_NAME }}
+  create-temp-branch:
     runs-on: ubuntu-latest
-    needs: [audit-changelog, check-current-version]
-    if: needs.audit-changelog.outputs.exists == 'false' || needs.check-current-version.outputs.up_to_date == 'false'
+    needs: [audit-changelog, audit-version-in-code]
+    if: needs.audit-changelog.outputs.exists == 'false' || needs.audit-version-in-code.outputs.up_to_date == 'false'
+
+    outputs:
+      branch_name: ${{ steps.variables.outputs.branch_name }}
 
     steps:
-      - name: Check out the repository
+      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.sha }}
@@ -186,101 +237,120 @@ jobs:
             name+="test-run/"
           fi
           name+="${{ inputs.version_number }}_$GITHUB_RUN_ID"
-          echo "BRANCH_NAME=$name" >> $GITHUB_OUTPUT
+          echo "branch_name=$name" >> $GITHUB_OUTPUT
 
-      - name: Create branch
+      - name: "Create Branch - ${{ steps.variables.outputs.branch_name }}"
         run: |
-          git checkout -b ${{ steps.variables.outputs.BRANCH_NAME }}
-          git push -u origin ${{ steps.variables.outputs.BRANCH_NAME }}
+          git checkout -b ${{ steps.variables.outputs.branch_name }}
+          git push -u origin ${{ steps.variables.outputs.branch_name }}
+      
+      - name: "[Notification] Temp branch created"
+        run: |
+          # Send notification
+          title="Temp branch generated"
+          message="The ${{ steps.variables.outputs.branch_name }} branch created"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
-      - name: Job Output
-        run: echo BRANCH_NAME ${{ steps.variables.outputs.BRANCH_NAME }}
+      - name: "[DEBUG] Print Outputs"
+        run: |
+          echo branch_name ${{ steps.variables.outputs.branch_name }}
 
   generate-changelog-bump-version:
     runs-on: ubuntu-latest
-    needs: [audit-changelog, check-current-version, create-new-branch]
+    needs: [audit-changelog, audit-version-in-code, create-temp-branch]
 
     steps:
-      - name: Check out the repository
+      - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
         uses: actions/checkout@v3
         with:
-          ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+          ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
-      - name: Add Homebrew to PATH
+      - name: "Add Homebrew To PATH"
         run: |
           echo "/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin" >> $GITHUB_PATH
 
-      - name: Install spark dependencies
+      - name: "Install Spark Dependencies"
         if: ${{ github.repository == 'dbt-labs/dbt-spark' }}
         run: |
           sudo apt-get install libsasl2-dev
 
-      - name: Install Homebrew Packages
-        if: needs.audit-changelog.outputs.exists == 'false'
+      - name: "Install Homebrew Packages"
         run: |
           brew install pre-commit
           brew tap miniscruff/changie https://github.com/miniscruff/changie
           brew install changie
 
-      - name: Generate Release Changelog
+      - name: "Generate Release Changelog"
         if: needs.audit-changelog.outputs.exists == 'false'
         run: |
           if [[ ${{ needs.audit-changelog.outputs.is_prerelease }} -eq 1 ]]
           then
             changie batch ${{ needs.audit-changelog.outputs.base_version }} --move-dir '${{ needs.audit-changelog.outputs.base_version }}' --prerelease ${{ needs.audit-changelog.outputs.prerelease }}
           else
-            changie batch ${{ needs.audit-changelog.outputs.base_version }}  --include '${{ needs.audit-changelog.outputs.base_version }}' --remove-prereleases
+            changie batch ${{ needs.audit-changelog.outputs.base_version }} --include '${{ needs.audit-changelog.outputs.base_version }}' --remove-prereleases
           fi
           changie merge
           git status
+      
+
 
       # this step will fail on whitespace errors but also correct them
-      - name: Remove trailing whitespace
+      - name: "Remove Trailing Whitespace Via Pre-commit"
         continue-on-error: true
         run: |
           pre-commit run trailing-whitespace --files .bumpversion.cfg CHANGELOG.md .changes/*
           git status
 
       # this step will fail on newline errors but also correct them
-      - name: Removing extra newlines
+      - name: "Removing Extra Newlines Via Pre-commit"
         continue-on-error: true
         run: |
           pre-commit run end-of-file-fixer --files .bumpversion.cfg CHANGELOG.md .changes/*
           git status
 
-      - name: Check Changelog Created Successfully
+      - name: "Check Changelog Created Successfully"
         if: needs.audit-changelog.outputs.exists == 'false'
         run: |
+          title="Changelog"
           if [[ -f ${{ needs.audit-changelog.outputs.changelog_path }} ]]
           then
-            echo Changelog file created successfully
-          else
-            echo Changelog failed to generate.  Exiting.
+            message="Changelog file created successfully"
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+          else            
+            message="Changelog failed to generate"
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
           fi
 
-      - uses: actions/setup-python@v2
-        if: needs.check-current-version.outputs.up_to_date == 'false'
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
-      - name: Install python dependencies
-        if: needs.check-current-version.outputs.up_to_date == 'false'
+      - name: "Install Python Dependencies"
+        if: needs.audit-version-in-code.outputs.up_to_date == 'false'
         run: |
           python3 -m venv env
           source env/bin/activate
           python -m pip install --upgrade pip
 
-      - name: Bump version
-        if: needs.check-current-version.outputs.up_to_date == 'false'
+      - name: "Bump Version To ${{ inputs.version_number }}"
+        if: needs.audit-version-in-code.outputs.up_to_date == 'false'
         # note: bumpversion is no longer supported, it actually points to bump2version now
         run: |
           source env/bin/activate
           python -m pip install -r dev-requirements.txt
           env/bin/bumpversion --allow-dirty --new-version ${{ inputs.version_number }} major
           git status
+      
+      - name: "[Notification] Bump Version To ${{ inputs.version_number }}"
+        if: needs.audit-version-in-code.outputs.up_to_date == 'false'
+        run: |
+          title="Version bump"
+          message="Version successfully bumped in codebase to ${{ inputs.version_number }}"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
-      - name: Commit & Push changes
+      - name: "Commit & Push Changes"
         run: |
           #Data for commit
           user="Github Build Bot"
@@ -296,16 +366,16 @@ jobs:
 
   run-unit-tests:
     runs-on: ubuntu-latest
-    needs: [create-new-branch, generate-changelog-bump-version]
+    needs: [create-temp-branch, generate-changelog-bump-version]
 
     env:
       TOXENV: unit
 
     steps:
-      - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-new-branch.outputs.BRANCH_NAME }}"
+      - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
         uses: actions/checkout@v3
         with:
-          ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+          ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v4
@@ -324,16 +394,16 @@ jobs:
 
   # run-integration-tests:
   #   runs-on: ubuntu-latest
-  #   needs: [create-new-branch, generate-changelog-bump-version]
+  #   needs: [create-temp-branch, generate-changelog-bump-version]
 
   #   env:
   #     TOXENV: integration
 
   #   steps:
-  #     - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-new-branch.outputs.BRANCH_NAME }}"
+  #     - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
   #       uses: actions/checkout@v3
   #       with:
-  #         ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+  #         ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
   #     - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
   #       uses: actions/setup-python@v4
@@ -350,84 +420,103 @@ jobs:
   #     - name: Run tests
   #       run: tox
 
-  merge-for-release:
+  merge-changes-into-target-branch:
     runs-on: ubuntu-latest
-    needs: [run-unit-tests, create-new-branch]
+    needs: [run-unit-tests, create-temp-branch]
     if: ${{ inputs.test_run == false }}
 
     steps:
-      - name: Log Values
+      - name: "[Debug] Print Variables"
         run: |
-          echo inputs.target_branch ${{ inputs.target_branch }}
-          echo needs.create-new-branch.outputs.BRANCH_NAME ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+          echo target_branch: ${{ inputs.target_branch }}
+          echo branch_name:   ${{ needs.create-temp-branch.outputs.branch_name }}
 
-      - name: Check out target branch
+      - name: "Checkout Repo ${{ github.repository }}"
         uses: actions/checkout@v3
 
-      - name: Merge changes with target branch
+      - name: "Merge Changes Into ${{ inputs.target_branch }}"
         uses: everlytic/branch-merge@1.1.2
         with:
-          source_ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+          source_ref: ${{ needs.create-temp-branch.outputs.branch_name }}
           target_branch: ${{ inputs.target_branch }}
           github_token: ${{ secrets.GITHUB_TOKEN }} # TODO: probably need to use a custom PAT to override ``.latest`` protection rules
           commit_message_template: "[Automated] Merged {source_ref} into target {target_branch} during release process"
 
-  get-release-sha:
-    # Get the sha that will be released.  If the changelog already exists on the input sha and the version has already been bumped,
-    # then it is what we will release. Otherwise we generated a changelog and did the version bump in this workflow and there is a
-    # new sha to use from the merge we just did.  Grab that here instead.
-    outputs:
-      final_sha: ${{ steps.final_sha.outputs.final_sha }}
+  determine-release-sha:
     runs-on: ubuntu-latest
     needs:
       [
-        create-new-branch,
-        merge-for-release,
+        create-temp-branch,
+        merge-changes-into-target-branch,
         audit-changelog,
-        check-current-version,
+        audit-version-in-code,
       ]
     # always run this job, regardness of if the dependant jobs were skipped
     if: always()
 
+    # Get the sha that will be released.  If the changelog already exists on the input sha and the version has already been bumped,
+    # then it is what we will release. Otherwise we generated a changelog and did the version bump in this workflow and there is a
+    # new sha to use from the merge we just did.  Grab that here instead.
+    outputs:
+      final_sha: ${{ steps.resolve_commit_sha.outputs.release_sha }}
+
     steps:
-      - name: Log Inputs
+      - name: "[Debug] Print Variables"
         run: |
-          echo target_branch: ${{ inputs.target_branch }}
-          echo new branch: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
-          echo changelog exists: ${{ needs.audit-changelog.outputs.exists }}
-          echo version up to date: ${{ needs.check-current-version.outputs.up_to_date }}
+          echo target_branch:    ${{ inputs.target_branch }}
+          echo new_branch:       ${{ needs.create-temp-branch.outputs.branch_name }}
+          echo changelog_exists: ${{ needs.audit-changelog.outputs.exists }}
+          echo up_to_date:       ${{ needs.audit-version-in-code.outputs.up_to_date }}
 
-      - name: Check out target branch - ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
-        if: ${{ inputs.test_run == true }}
+      - name: "Resolve Branch To Checkout"
+        id: resolve_branch
+        run: |
+          branch=""
+          if [[ ${{ inputs.test_run == true }} ]]
+          then
+            branch=${{ needs.create-temp-branch.outputs.branch_name }}
+          else
+            branch=${{ inputs.target_branch }}
+          fi
+          echo "target_branch=$branch" >> $GITHUB_OUTPUT
+      
+      - name: "[Notification] Resolve Branch To Checkout"
+        run: |
+          title="Branch pick"
+          message="The ${{ steps.resolve_branch.outputs.target_branch }} branch will be used for release"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+
+      - name: "Checkout Resolved Branch - ${{ steps.resolve_branch.outputs.target_branch }}"
         uses: actions/checkout@v3
         with:
-          ref: ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+          ref: ${{ steps.resolve_branch.outputs.target_branch }}
 
-      - name: Check out target branch - ${{ inputs.target_branch }}
-        if: ${{ inputs.test_run == false }}
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.target_branch }}
-
-      - name: Log branch
+      - name: "[Debug] Log Branch"
         run: git status
 
-      - name: Set sha for release
-        id: final_sha
+      - name: "Resolve Commit SHA For Release"
+        id: resolve_commit_sha
         run: |
           commit_sha=""
-          if [[ ${{ needs.audit-changelog.outputs.exists }} == false ]] || [[ ${{ needs.check-current-version.outputs.up_to_date }} == false ]]
+          if [[ ${{ needs.audit-changelog.outputs.exists }} == false ]] || [[ ${{ needs.audit-version-in-code.outputs.up_to_date }} == false ]]
           then
             commit_sha=$(git rev-parse HEAD)
           else
             commit_sha=${{ inputs.sha }}
           fi
-          echo "final_sha=$commit_sha" >> $GITHUB_OUTPUT
-
-      - name: Remove Temp Branch - ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
-        if: ${{ inputs.test_run == false && needs.create-new-branch.outputs.BRANCH_NAME != '' }}
+          echo "release_sha=$commit_sha" >> $GITHUB_OUTPUT
+      
+      - name: "[Notification] Resolve Commit SHA For Release"
         run: |
-          git push origin -d ${{ needs.create-new-branch.outputs.BRANCH_NAME }}
+          title="Release commit pick"
+          message="The ${{ steps.resolve_commit_sha.outputs.release_sha }} commit will be used for release"
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
-      - name: Job Output
-        run: echo final_sha ${{ steps.final_sha.outputs.final_sha }}
+      - name: "Remove Temp Branch - ${{ needs.create-temp-branch.outputs.branch_name }}"
+        if: ${{ inputs.test_run == false && needs.create-temp-branch.outputs.branch_name != '' }}
+        run: |
+          git push origin -d ${{ needs.create-temp-branch.outputs.branch_name }}
+
+      - name: "[Debug] Print Outputs"
+        run: |
+          echo release_sha: ${{ steps.resolve_commit_sha.outputs.release_sha }}
