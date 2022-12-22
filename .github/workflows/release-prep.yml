@@ -135,7 +135,7 @@ jobs:
           then
             message="Changelog file for ${{ inputs.version_number }} alredy exists"
           else
-            message="Changelog file for ${{ inputs.version_number }} doesn't exists"
+            message="Changelog file for ${{ inputs.version_number }} doesn't exist"
           fi
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
