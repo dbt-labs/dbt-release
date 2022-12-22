@@ -19,7 +19,7 @@
 #  Naming strategy:
 #  - For normal runs: prep-release/${{ inputs.version_number }}_$GITHUB_RUN_ID
 #  - For test runs: prep-release/test-run/${{ inputs.version_number }}_$GITHUB_RUN_ID
-# 
+#
 # **why?**
 # Reusable and consistent GitHub release process.
 #
@@ -127,7 +127,7 @@ jobs:
             does_exist=true
           fi
           echo "exists=$does_exist">> $GITHUB_OUTPUT
-        
+
       - name: "[Notification] Set Changelog Existence For Subsequent Jobs"
         run: |
           title="Changelog exists"
@@ -172,7 +172,7 @@ jobs:
           title="Version check"
           message="The version in the codebase is equal to the provided version"
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
-      
+
       - name: "[Notification] Check Current Version In Code"
         run: |
           title="Version check"
@@ -243,7 +243,7 @@ jobs:
         run: |
           git checkout -b ${{ steps.variables.outputs.branch_name }}
           git push -u origin ${{ steps.variables.outputs.branch_name }}
-      
+
       - name: "[Notification] Temp branch created"
         run: |
           # Send notification
@@ -291,8 +291,6 @@ jobs:
           fi
           changie merge
           git status
-      
-
 
       # this step will fail on whitespace errors but also correct them
       - name: "Remove Trailing Whitespace Via Pre-commit"
@@ -316,7 +314,7 @@ jobs:
           then
             message="Changelog file created successfully"
             echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
-          else            
+          else
             message="Changelog failed to generate"
             echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
@@ -342,7 +340,7 @@ jobs:
           python -m pip install -r dev-requirements.txt
           env/bin/bumpversion --allow-dirty --new-version ${{ inputs.version_number }} major
           git status
-      
+
       - name: "[Notification] Bump Version To ${{ inputs.version_number }}"
         if: needs.audit-version-in-code.outputs.up_to_date == 'false'
         run: |
@@ -479,7 +477,7 @@ jobs:
             branch=${{ inputs.target_branch }}
           fi
           echo "target_branch=$branch" >> $GITHUB_OUTPUT
-      
+
       - name: "[Notification] Resolve Branch To Checkout"
         run: |
           title="Branch pick"
@@ -505,7 +503,7 @@ jobs:
             commit_sha=${{ inputs.sha }}
           fi
           echo "release_sha=$commit_sha" >> $GITHUB_OUTPUT
-      
+
       - name: "[Notification] Resolve Commit SHA For Release"
         run: |
           title="Release commit pick"
