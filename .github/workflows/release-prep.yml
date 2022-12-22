@@ -399,7 +399,7 @@ jobs:
   run-integration-tests:
     runs-on: ubuntu-latest
     needs: [create-temp-branch, generate-changelog-bump-version]
-    if: ${{ inputs.env_setup_script_path != "" }}
+    if: inputs.env_setup_script_path != ''
 
     env:
       TOXENV: integration
