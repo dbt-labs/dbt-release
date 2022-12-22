@@ -269,10 +269,10 @@ jobs:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
       - name: "Install Spark Dependencies"
-        if: ${{ github.repository == 'dbt-labs/dbt-spark' }}
+        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
         run: |
           sudo apt-get install libsasl2-dev
-      
+
       - name: "Install Python Dependencies"
         run: |
           python -m pip install --user --upgrade pip
