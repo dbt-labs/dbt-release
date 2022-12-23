@@ -266,15 +266,15 @@ jobs:
     needs: [audit-changelog, audit-version-in-code, create-temp-branch]
 
     steps:
-      - name: "Install Spark Dependencies"
-        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
-        run: |
-          sudo apt-get install libsasl2-dev
-
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
         uses: actions/checkout@v3
         with:
           ref: ${{ needs.create-temp-branch.outputs.branch_name }}
+      
+      - name: "Install Spark Dependencies"
+        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
+        run: |
+          sudo apt-get install libsasl2-dev
 
       - name: "Add Homebrew To PATH"
         run: |
@@ -376,15 +376,15 @@ jobs:
       TOXENV: unit
 
     steps:
-      - name: "Install Spark Dependencies"
-        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
-        run: |
-          sudo apt-get install libsasl2-dev
-
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
         uses: actions/checkout@v3
         with:
           ref: ${{ needs.create-temp-branch.outputs.branch_name }}
+      
+      - name: "Install Spark Dependencies"
+        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
+        run: |
+          sudo apt-get install libsasl2-dev
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v4
