@@ -411,7 +411,7 @@ jobs:
 
     steps:
       - name: "Setup Enviroment Variables - ./${{ inputs.env_setup_script_path }}"
-        run: ./${{ inputs.env_setup_script_path }}
+        run: source ./${{ inputs.env_setup_script_path }}
 
       - name: "Install Spark Dependencies"
         if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
