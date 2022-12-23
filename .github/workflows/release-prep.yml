@@ -410,6 +410,11 @@ jobs:
       TOXENV: integration
 
     steps:
+      - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.create-temp-branch.outputs.branch_name }}
+
       - name: "Setup Enviroment Variables - ./${{ inputs.env_setup_script_path }}"
         run: source ./${{ inputs.env_setup_script_path }}
 
@@ -417,11 +422,6 @@ jobs:
         if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
         run: |
           sudo apt-get install libsasl2-dev
-
-      - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v4
