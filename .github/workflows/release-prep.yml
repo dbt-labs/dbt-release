@@ -66,6 +66,10 @@ on:
 permissions:
   contents: write
 
+defaults:
+  run:
+    shell: bash
+
 env:
   PYTHON_TARGET_VERSION: 3.8
   NOTIFICATION_PREFIX: "[Release Preparation]"
@@ -262,6 +266,11 @@ jobs:
     needs: [audit-changelog, audit-version-in-code, create-temp-branch]
 
     steps:
+      - name: "Install Spark Dependencies"
+        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
+        run: |
+          sudo apt-get install libsasl2-dev
+
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
         uses: actions/checkout@v3
         with:
@@ -276,11 +285,6 @@ jobs:
           brew install pre-commit
           brew tap miniscruff/changie https://github.com/miniscruff/changie
           brew install changie
-
-      - name: "Install Spark Dependencies"
-        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
-        run: |
-          sudo apt-get install libsasl2-dev
 
       - name: "Generate Release Changelog"
         if: needs.audit-changelog.outputs.exists == 'false'
@@ -372,6 +376,11 @@ jobs:
       TOXENV: unit
 
     steps:
+      - name: "Install Spark Dependencies"
+        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
+        run: |
+          sudo apt-get install libsasl2-dev
+
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
         uses: actions/checkout@v3
         with:
@@ -381,11 +390,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
-
-      - name: "Install Spark Dependencies"
-        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
-        run: |
-          sudo apt-get install libsasl2-dev
 
       - name: "Install Python Dependencies"
         run: |
@@ -406,6 +410,14 @@ jobs:
       TOXENV: integration
 
     steps:
+      - name: "Setup Enviroment Variables - ./${{ inputs.env_setup_script_path }}"
+        run: ./${{ inputs.env_setup_script_path }}
+
+      - name: "Install Spark Dependencies"
+        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
+        run: |
+          sudo apt-get install libsasl2-dev
+
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
         uses: actions/checkout@v3
         with:
@@ -416,24 +428,16 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
+      - name: "Set Up Postgres (Linux)"
+        if: ${{ github.repository == 'dbt-labs/dbt-core-release-test' }}
+        uses: ./.github/actions/setup-postgres-linux
+
       - name: "Install python tools"
         run: |
           python -m pip install --user --upgrade pip
           python -m pip --version
           python -m pip install tox
           tox --version
-
-      - name: "Install Spark Dependencies"
-        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
-        run: |
-          sudo apt-get install libsasl2-dev
-
-      - name: "Setup Enviroment Variables - ./${{ inputs.env_setup_script_path }}"
-        run: source ./${{ inputs.env_setup_script_path }}
-
-      - name: "Set Up Postgres (Linux)"
-        if: ${{ github.repository == 'dbt-labs/dbt-core-release-test' }}
-        uses: ./.github/actions/setup-postgres-linux
 
       - name: Run tests
         run: tox
