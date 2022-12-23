@@ -281,6 +281,11 @@ jobs:
           brew tap miniscruff/changie https://github.com/miniscruff/changie
           brew install changie
 
+      - name: "Install Spark Dependencies"
+        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
+        run: |
+          sudo apt-get install libsasl2-dev
+
       - name: "Generate Release Changelog"
         if: needs.audit-changelog.outputs.exists == 'false'
         run: |
