@@ -174,10 +174,6 @@ jobs:
             is_updated=true
           fi
           echo "up_to_date=$is_updated" >> $GITHUB_OUTPUT
-          # Send notification
-          title="Version check"
-          message="The version in the codebase is equal to the provided version"
-          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "[Notification] Check Current Version In Code"
         run: |
