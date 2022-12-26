@@ -87,7 +87,7 @@ jobs:
       - name: PyPI Release Exists, Skip
         run: echo A release already exists for this version ${{ inputs.version_number }} on Pypi, skipping
 
-  pypi-release:
+  test-pypi-release:
     runs-on: ubuntu-latest
     needs: [check-pypi-exists]
     if: ${{ inputs.test_run == true }}
