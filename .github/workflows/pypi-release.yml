@@ -133,11 +133,20 @@ jobs:
     if: always()
 
     steps:
+      - name: "Sanitize Package Name"
+        id: package-name
+        run: |
+          repo_name=${{ github.event.repository.name }}
+          test_suffix="-release-test"
+          name=${repo_name%"$test_suffix"}
+          echo "name=$name" >> $GITHUB_OUTPUT
+
+      
       - name: Check PyPI
         id: pypi_info
         uses: dbt-labs/actions/py-package-info@users/alexander-smolyakov/py-package-info-add-ability-to-select-package-index
         with:
-          package: ${{ github.event.repository.name }}
+          package: ${{ steps.package-name.outputs.name }}
           version: ${{ inputs.version_number }}
           check-test-index: ${{ inputs.test_run }}
 
