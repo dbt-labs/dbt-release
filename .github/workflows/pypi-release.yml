@@ -76,7 +76,7 @@ jobs:
     steps:
       - name: "Fetch PyPI Info For ${{ needs.sanitize-package-name.outputs.name }} Package"
         id: pypi_info
-        uses: dbt-labs/actions/py-pypi_info@users/alexander-smolyakov/py-pypi_info-add-ability-to-select-package-index
+        uses: dbt-labs/actions/py-package-info@users/alexander-smolyakov/py-package-info-add-ability-to-select-package-index
         with:
           package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ inputs.version_number }}
@@ -162,7 +162,7 @@ jobs:
     steps:
       - name: "Fetch PyPI Info For ${{ needs.sanitize-package-name.outputs.name }} Package"
         id: pypi_info
-        uses: dbt-labs/actions/py-pypi_info@users/alexander-smolyakov/py-pypi_info-add-ability-to-select-package-index
+        uses: dbt-labs/actions/py-package-info@users/alexander-smolyakov/py-package-info-add-ability-to-select-package-index
         with:
           package: ${{ needs.sanitize-package-name.outputs.name }}
           check-test-index: ${{ inputs.test_run }}
