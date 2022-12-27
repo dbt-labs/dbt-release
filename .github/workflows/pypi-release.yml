@@ -169,6 +169,7 @@ jobs:
         uses: dbt-labs/actions/py-package-info@users/alexander-smolyakov/py-package-info-add-ability-to-select-package-index
         with:
           package: ${{ needs.sanitize-package-name.outputs.name }}
+          version: ${{ inputs.version_number }}
           check-test-index: ${{ inputs.test_run }}
 
       - name: "Validate PyPI Info"
