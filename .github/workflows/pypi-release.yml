@@ -93,7 +93,7 @@ jobs:
           then
             is_exists=true
           fi
-          echo "is_exists=$is_exists" >> $$GITHUB_OUTPUT
+          echo "is_exists=$is_exists" >> $GITHUB_OUTPUT
 
   skip-pypi-release:
     runs-on: ubuntu-latest
