@@ -187,10 +187,10 @@ jobs:
           title="Availability Validation"
           if [[ ${{ steps.is-version-available.outputs.is_available }} == true ]]
           then
-            message="The ${{ inputs.version_number }} version published to PyPI."
+            message="The ${{ needs.sanitize-package-name.outputs.name }} v.${{ inputs.version_number }} version available in PyPI."
             echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
-            message="The info about ${{ inputs.version_number }} version is not available in PyPI. Manual intervention required."
+            message="The info about ${{ needs.sanitize-package-name.outputs.name }} v.${{ inputs.version_number }} version is not available in PyPI. Manual intervention required."
             echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
           fi
