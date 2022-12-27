@@ -34,10 +34,10 @@ on:
     # pass through secrets for both PyPi Test and Prod so they're always there
     secrets:
       PYPI_API_TOKEN:
-        description: AWS Access Key ID
+        description: PyPI API token
         required: true
       TEST_PYPI_API_TOKEN:
-        description: Test Pypi api token
+        description: Test PyPI API token
         required: true
 
 permissions:
