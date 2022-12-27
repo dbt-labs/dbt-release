@@ -2,8 +2,8 @@
 # After releasing to GitHub, release to PyPI
 #
 # Inputs:
-#   tag: tag of release in the format v1.2.3rc1
-#   test_run: true is releasing to test PyPI, otherwise false
+#   version_number: The release version number (i.e. 1.0.0b1, 1.2.3rc2, 1.0.0)
+#   test_run      : Test run (True - release to Test PyPI, False - release to PyPI)
 #
 # **why?**
 # Automate the release process
@@ -12,8 +12,12 @@
 #  After successfully releasing to GitHub
 #
 # Assumptions
-#  1.  The name of the repository is the name of the package on PyPI
+#  1. The name of the repository is the name of the package on PyPI
 #
+# Validation Checks
+#  1. If the provided version is not uploaded to PyPI yet, release it.
+#  2. Release to test or prod package index, depending on the value of test_run input.
+#  3. Check PyPI at the end to validate that the version has been uploaded to package index.
 
 name: PyPI release
 
@@ -30,14 +34,17 @@ on:
     # pass through secrets for both PyPi Test and Prod so they're always there
     secrets:
       PYPI_API_TOKEN:
-        description: AWS Access Key ID
+        description: PyPI API token
         required: true
       TEST_PYPI_API_TOKEN:
-        description: Test Pypi api token
+        description: Test PyPI API token
         required: true
 
 permissions:
   contents: read
+
+env:
+  NOTIFICATION_PREFIX: "[PyPI Release]"
 
 jobs:
   log-inputs:
@@ -48,11 +55,11 @@ jobs:
           echo The release version number: ${{ inputs.version_number }}
           echo Release to test PyPI:       ${{ inputs.test_run }}
 
-  check-pypi-exists:
+  sanitize-package-name:
     runs-on: ubuntu-latest
 
     outputs:
-      exists: ${{ steps.set_existence.outputs.exists }}
+      name: ${{ steps.package-name.outputs.name }}
 
     steps:
       - name: "Sanitize Package Name"
@@ -63,42 +70,60 @@ jobs:
           name=${repo_name%"$test_suffix"}
           echo "name=$name" >> $GITHUB_OUTPUT
 
-      - name: Check PyPI
+  check-package-exists-pypi:
+    runs-on: ubuntu-latest
+    needs: [sanitize-package-name]
+
+    outputs:
+      exists: ${{ steps.version_existence.outputs.is_exists }}
+
+    steps:
+      - name: "Fetch PyPI Info For ${{ needs.sanitize-package-name.outputs.name }} Package"
         id: pypi_info
         uses: dbt-labs/actions/py-package-info@users/alexander-smolyakov/py-package-info-add-ability-to-select-package-index
         with:
-          package: ${{ steps.package-name.outputs.name }}
+          package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ inputs.version_number }}
           check-test-index: ${{ inputs.test_run }}
 
-      - name: Set Outputs
+      - name: "Set Version Existence For Subsequent Jobs"
         # The above step will just use the latest version if the input version
         # is not found.  So to validate the version we want to release exists
         # we need to compare the output version.
-        id: set_existence
+        id: version_existence
         run: |
-          if [[ ${{ steps.pypi_info.outputs.version }} != ${{ inputs.version_number }} ]]
+          is_exists=false
+          if [[ ${{ steps.pypi_info.outputs.version }} == ${{ inputs.version_number }} ]]
           then
-            echo PyPI Package not found for ${{ inputs.version_number }}
-            echo '::set-output name=exists::false'
-          else
-            echo PyPI Package found for ${{ inputs.version_number }}.  Skip release.
-            echo '::set-output name=exists::true'
+            is_exists=true
           fi
+          echo "is_exists=$is_exists" >> $GITHUB_OUTPUT
 
   skip-pypi-release:
     runs-on: ubuntu-latest
-    needs: [check-pypi-exists]
-    if: needs.check-pypi-exists.outputs.exists == 'true'
+    needs: [sanitize-package-name, check-package-exists-pypi]
+    if: needs.check-package-exists-pypi.outputs.exists == 'true'
 
     steps:
-      - name: PyPI Release Exists, Skip
-        run: echo A release already exists for this version ${{ inputs.version_number }} on Pypi, skipping
+      - name: "[Notification] Package Version Already Live In Package Index. Skip Upload."
+        run: |
+          title="Package version already live in package index"
+          version=${{ inputs.version_number }}
+          package_name=${{ needs.sanitize-package-name.outputs.name }}
+          package_index="PyPI"
+          if [[ ${{ inputs.test_run }} == true ]]
+          then
+            package_index="Test PyPi"
+          fi
+          message="The version $version of package $package_name already lives in the $package_index. The upload to the package index will be skipped."
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
   test-pypi-release:
     runs-on: ubuntu-latest
-    needs: [check-pypi-exists]
-    if: ${{ inputs.test_run == true }}
+    needs: [sanitize-package-name, check-package-exists-pypi]
+    if: >-
+      needs.check-package-exists-pypi.outputs.exists == 'false' &&
+      inputs.test_run == 'true'
 
     environment: PypiTest
 
@@ -109,7 +134,7 @@ jobs:
           name: ${{ inputs.version_number }}
           path: .
 
-      - name: "Publish Distribution To Test PyPI"
+      - name: "Publish ${{ needs.sanitize-package-name.outputs.name }} v.${{ inputs.version_number }} To Test PyPI"
         uses: pypa/gh-action-pypi-publish@v1.5
         with:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
@@ -117,8 +142,10 @@ jobs:
 
   prod-pypi-release:
     runs-on: ubuntu-latest
-    needs: [check-pypi-exists]
-    if: ${{ inputs.test_run == false }}
+    needs: [sanitize-package-name, check-package-exists-pypi]
+    if: >-
+      needs.check-package-exists-pypi.outputs.exists == 'false' &&
+      inputs.test_run == false
 
     environment: PypiProd
 
@@ -129,44 +156,45 @@ jobs:
           name: ${{ inputs.version_number }}
           path: .
 
-      - name: "Publish Distribution To PyPI"
+      - name: "Publish ${{ needs.sanitize-package-name.outputs.name }} v.${{ inputs.version_number }} To PyPI"
         uses: pypa/gh-action-pypi-publish@v1.5
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
-  validate-pypi-package:
+  validate-package-available-pypi:
     runs-on: ubuntu-latest
-    needs: [test-pypi-release, prod-pypi-release]
+    needs: [sanitize-package-name, test-pypi-release, prod-pypi-release]
     # always run this step because one of the needs are always skipped.
     if: always()
 
     steps:
-      - name: "Sanitize Package Name"
-        id: package-name
-        run: |
-          repo_name=${{ github.event.repository.name }}
-          test_suffix="-release-test"
-          name=${repo_name%"$test_suffix"}
-          echo "name=$name" >> $GITHUB_OUTPUT
-
-      - name: Check PyPI
+      - name: "Fetch PyPI Info For ${{ needs.sanitize-package-name.outputs.name }} Package"
         id: pypi_info
         uses: dbt-labs/actions/py-package-info@users/alexander-smolyakov/py-package-info-add-ability-to-select-package-index
         with:
-          package: ${{ steps.package-name.outputs.name }}
+          package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ inputs.version_number }}
           check-test-index: ${{ inputs.test_run }}
 
-      - name: Set output
-        # The above step will just use the latest version if the input version
-        # is not found.  So to validate the version we want to release exists
-        # we need to compare teh output version.
-        id: set_existence
+      - name: "Validate PyPI Info"
+        id: is-version-available
         run: |
-          if [[ ${{ steps.pypi_info.version }} != ${{ inputs.version_number }} ]]
+          is_available=false
+          if [[ ${{ steps.pypi_info.outputs.version }} == ${{ inputs.version_number }} ]]
           then
-            echo ${{ inputs.version_number }} released to Pypi
+            is_available=true
+          fi
+          echo "is_available=$is_available" >> $GITHUB_OUTPUT
+
+      - name: "Set Workflow Status"
+        run: |
+          title="Availability Validation"
+          if [[ ${{ steps.is-version-available.outputs.is_available }} == true ]]
+          then
+            message="The ${{ needs.sanitize-package-name.outputs.name }} v.${{ inputs.version_number }} version available in PyPI."
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
-            echo ${{ inputs.version_number }} FAILED to released to Pypi.  Manual intervention required.
+            message="The info about ${{ needs.sanitize-package-name.outputs.name }} v.${{ inputs.version_number }} version is not available in PyPI. Manual intervention required."
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
           fi
