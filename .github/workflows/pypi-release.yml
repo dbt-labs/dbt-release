@@ -93,12 +93,12 @@ jobs:
           then
             is_exists=true
           fi
-          echo "is_exists=$is_exist" >> $$GITHUB_OUTPUT
+          echo "is_exists=$is_exists" >> $$GITHUB_OUTPUT
 
   skip-pypi-release:
     runs-on: ubuntu-latest
     needs: [sanitize-package-name, check-package-exists-pypi]
-    if: ${{ needs.check-package-exists-pypi.outputs.exists == true }}
+    if: needs.check-package-exists-pypi.outputs.exists == 'true'
 
     steps:
       - name: "[Notification] Package Version Already Live In Package Index. Skip Upload."
@@ -117,7 +117,9 @@ jobs:
   test-pypi-release:
     runs-on: ubuntu-latest
     needs: [sanitize-package-name, check-package-exists-pypi]
-    if: ${{ inputs.test_run == true }}
+    if: >-
+      needs.check-package-exists-pypi.outputs.exists == 'false' &&
+      inputs.test_run == 'true'
 
     environment: PypiTest
 
@@ -137,7 +139,9 @@ jobs:
   prod-pypi-release:
     runs-on: ubuntu-latest
     needs: [sanitize-package-name, check-package-exists-pypi]
-    if: ${{ inputs.test_run == false }}
+    if: >-
+      needs.check-package-exists-pypi.outputs.exists == 'false' &&
+      inputs.test_run == false
 
     environment: PypiProd
 
