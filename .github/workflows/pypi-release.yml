@@ -2,8 +2,8 @@
 # After releasing to GitHub, release to PyPI
 #
 # Inputs:
-#   tag: tag of release in the format v1.2.3rc1
-#   test_run: true is releasing to test PyPI, otherwise false
+#   version_number: The release version number (i.e. 1.0.0b1, 1.2.3rc2, 1.0.0)
+#   test_run      : Test run (True - release to Test PyPI, False - release to PyPI)
 #
 # **why?**
 # Automate the release process
@@ -12,8 +12,12 @@
 #  After successfully releasing to GitHub
 #
 # Assumptions
-#  1.  The name of the repository is the name of the package on PyPI
+#  1. The name of the repository is the name of the package on PyPI
 #
+# Validation Checks
+#  1. If the provided version is not uploaded to PyPI yet, release it.
+#  2. Release to test or prod package index, depending on the value of test_run input.
+#  3. Check PyPI at the end to validate that the version has been uploaded to package index.
 
 name: PyPI release
 
