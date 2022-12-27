@@ -48,11 +48,11 @@ jobs:
           echo The release version number: ${{ inputs.version_number }}
           echo Release to test PyPI:       ${{ inputs.test_run }}
 
-  check-pypi-exists:
+  sanitize-package-name:
     runs-on: ubuntu-latest
 
     outputs:
-      exists: ${{ steps.set_existence.outputs.exists }}
+      name: ${{ steps.package-name.outputs.name }}
 
     steps:
       - name: "Sanitize Package Name"
@@ -63,11 +63,19 @@ jobs:
           name=${repo_name%"$test_suffix"}
           echo "name=$name" >> $GITHUB_OUTPUT
 
+  check-package-exists-pypi:
+    runs-on: ubuntu-latest
+    needs: [sanitize-package-name]
+
+    outputs:
+      exists: ${{ steps.set_existence.outputs.exists }}
+
+    steps:
       - name: Check PyPI
         id: pypi_info
         uses: dbt-labs/actions/py-package-info@users/alexander-smolyakov/py-package-info-add-ability-to-select-package-index
         with:
-          package: ${{ steps.package-name.outputs.name }}
+          package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ inputs.version_number }}
           check-test-index: ${{ inputs.test_run }}
 
@@ -88,8 +96,8 @@ jobs:
 
   skip-pypi-release:
     runs-on: ubuntu-latest
-    needs: [check-pypi-exists]
-    if: needs.check-pypi-exists.outputs.exists == 'true'
+    needs: [check-package-exists-pypi]
+    if: needs.check-package-exists-pypi.outputs.exists == 'true'
 
     steps:
       - name: PyPI Release Exists, Skip
@@ -97,7 +105,7 @@ jobs:
 
   test-pypi-release:
     runs-on: ubuntu-latest
-    needs: [check-pypi-exists]
+    needs: [check-package-exists-pypi]
     if: ${{ inputs.test_run == true }}
 
     environment: PypiTest
@@ -117,7 +125,7 @@ jobs:
 
   prod-pypi-release:
     runs-on: ubuntu-latest
-    needs: [check-pypi-exists]
+    needs: [check-package-exists-pypi]
     if: ${{ inputs.test_run == false }}
 
     environment: PypiProd
@@ -134,9 +142,9 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
-  validate-pypi-package:
+  validate-package-available-pypi:
     runs-on: ubuntu-latest
-    needs: [test-pypi-release, prod-pypi-release]
+    needs: [sanitize-package-name, test-pypi-release, prod-pypi-release]
     # always run this step because one of the needs are always skipped.
     if: always()
 
@@ -153,7 +161,7 @@ jobs:
         id: pypi_info
         uses: dbt-labs/actions/py-package-info@users/alexander-smolyakov/py-package-info-add-ability-to-select-package-index
         with:
-          package: ${{ steps.package-name.outputs.name }}
+          package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ inputs.version_number }}
           check-test-index: ${{ inputs.test_run }}
 
