@@ -12,7 +12,7 @@ on:
         required: false
         type: string
       notification_title:
-        default: "Release Proccess Status"
+        default: "Release Process Status"
         required: false
         type: string
     secrets:
