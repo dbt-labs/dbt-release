@@ -7,6 +7,10 @@ name: Post Slack Notification
 on:
   workflow_call:
     inputs:
+      notify_when:
+        default: "failure"
+        required: false
+        type: string
       notification_title:
         default: "Release Proccess Status"
         required: false
@@ -34,6 +38,7 @@ jobs:
       - name: "[DEBUG] Print Variables"
         run: |
           # WORKFLOW INPUTS
+          echo Notify when: ${{ inputs.notify_when }}
           echo Notification title:  ${{ inputs.notification_title }}
           # ENVIROMENT VARIABLES
           echo Notification prefix: ${{ env.NOTIFICATION_PREFIX }}
@@ -42,26 +47,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Dump GitHub context
-        id: github_context_step
-        run: echo '${{ toJSON(github) }}'
-
-      - name: Dump job context
-        run: echo '${{ toJSON(job) }}'
-
-      - name: Dump steps context
-        run: echo '${{ toJSON(steps) }}'
-
-      - name: Dump runner context
-        run: echo '${{ toJSON(runner) }}'
-
-      # - name: "Post Slack Notification"
-      #   uses: ravsamhq/notify-slack-action@v2.3.0
-      #   with:
-      #     status: ${{ job.status }}
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-      #     notification_title: ${{ inputs.notification_title }}
-      #     message_format: "{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}>"
-      #     footer: "<{run_url}|View Run>"
-      #   env:
-      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: "Post Slack Notification"
+        uses: ravsamhq/notify-slack-action@v2.3.0
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ inputs.notification_title }}
+          message_format: "{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}>"
+          footer: "<{run_url}|View Run>"
+          notify_when: ${{ inputs.notify_when }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
