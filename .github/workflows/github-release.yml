@@ -63,7 +63,7 @@ jobs:
         run: |
           echo The last commit sha in the release: ${{ inputs.sha }}
           echo The release version number:         ${{ inputs.version_number }}
-          echo Expected Changlog path:             ${{ inputs.changelog_path }}
+          echo Expected Changelog path:            ${{ inputs.changelog_path }}
           echo Test run:                           ${{ inputs.test_run }}
           echo Repo link:                          ${{ env.REPO_LINK }}
           echo Notification prefix:                ${{ env.NOTIFICATION_PREFIX }}
@@ -222,7 +222,7 @@ jobs:
           if [[ ${{ inputs.test_run }} == true ]]
           then
             echo Release will be published as draft
-            echo "draft=--draft" >> $GITHUB_OUTPUT 
+            echo "draft=--draft" >> $GITHUB_OUTPUT
           else
             echo This is not a draft release
           fi
