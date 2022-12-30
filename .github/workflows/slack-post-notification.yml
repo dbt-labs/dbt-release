@@ -48,7 +48,7 @@ jobs:
 
     steps:
       - name: "Post Slack Notification"
-        uses: ravsamhq/notify-slack-action@v2.3.0
+        uses: alexander-smolyakov/notify-slack-action-fork@users/alexander-smolyakov/output-notification-payload
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
