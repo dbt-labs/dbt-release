@@ -7,6 +7,9 @@ name: Post Slack Notification
 on:
   workflow_call:
     inputs:
+      # status:
+      #   type: string
+      #   required: true
       notify_when:
         default: "success,failure,cancelled,warnings,skipped"
         required: false
@@ -42,6 +45,25 @@ jobs:
           echo Notification title:  ${{ inputs.notification_title }}
           # ENVIROMENT VARIABLES
           echo Notification prefix: ${{ env.NOTIFICATION_PREFIX }}
+
+  resolve-workflow-status:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Successfull status"
+        if: ${{ success() }}
+        run: |
+          echo success
+
+      - name: "Cancelled status"
+        if: ${{ cancelled() }}
+        run: |
+          echo cancelled
+
+      - name: "Failure"
+        if: ${{ failure() }}
+        run: |
+          echo failure
 
   slack-post-notification:
     runs-on: ubuntu-latest
