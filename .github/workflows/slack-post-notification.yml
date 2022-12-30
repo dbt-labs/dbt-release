@@ -1,0 +1,60 @@
+# **what?**
+# **why?**
+# **when?**
+
+name: Post Slack Notification
+
+on:
+  workflow_call:
+    inputs:
+      notify_when:
+        default: "failure"
+        required: false
+        type: string
+      notification_title:
+        default: "Release Process Status"
+        required: false
+        type: string
+    secrets:
+      SLACK_WEBHOOK_URL:
+        description: Slack app webhook url
+        required: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NOTIFICATION_PREFIX: "[Slack Notification]"
+
+jobs:
+  log-inputs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "[DEBUG] Print Variables"
+        run: |
+          # WORKFLOW INPUTS
+          echo Notify when: ${{ inputs.notify_when }}
+          echo Notification title:  ${{ inputs.notification_title }}
+          # ENVIROMENT VARIABLES
+          echo Notification prefix: ${{ env.NOTIFICATION_PREFIX }}
+
+  slack-post-notification:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Post Slack Notification"
+        uses: ravsamhq/notify-slack-action@v2.3.0
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ inputs.notification_title }}
+          message_format: "{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}>"
+          footer: "<{run_url}|View Run>"
+          notify_when: ${{ inputs.notify_when }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
