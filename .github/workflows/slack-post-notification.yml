@@ -76,5 +76,5 @@ jobs:
       - name: "[Notification] Post Slack Notification"
         run: |
           title="Notification successfully sent"
-          message="The "${{ inputs.notification_title }}" notification sent to Slack. Overall workflow status: ${{ inputs.status }}."
+          message="The '${{ inputs.notification_title }}' notification sent to Slack. Overall workflow status: ${{ inputs.status }}."
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
