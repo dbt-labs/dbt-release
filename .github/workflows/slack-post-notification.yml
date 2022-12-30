@@ -7,9 +7,9 @@ name: Post Slack Notification
 on:
   workflow_call:
     inputs:
-      # status:
-      #   type: string
-      #   required: true
+      status:
+        type: string
+        required: true
       notify_when:
         default: "success,failure,cancelled,warnings,skipped"
         required: false
@@ -41,29 +41,11 @@ jobs:
       - name: "[DEBUG] Print Variables"
         run: |
           # WORKFLOW INPUTS
-          echo Notify when: ${{ inputs.notify_when }}
+          echo Status:              ${{ inputs.status }}
+          echo Notify when:         ${{ inputs.notify_when }}
           echo Notification title:  ${{ inputs.notification_title }}
           # ENVIROMENT VARIABLES
           echo Notification prefix: ${{ env.NOTIFICATION_PREFIX }}
-
-  resolve-workflow-status:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: "Successfull status"
-        if: ${{ success() }}
-        run: |
-          echo success
-
-      - name: "Cancelled status"
-        if: ${{ cancelled() }}
-        run: |
-          echo cancelled
-
-      - name: "Failure"
-        if: ${{ failure() }}
-        run: |
-          echo failure
 
   slack-post-notification:
     runs-on: ubuntu-latest
@@ -72,7 +54,7 @@ jobs:
       - name: "Post Slack Notification"
         uses: alexander-smolyakov/notify-slack-action-fork@users/alexander-smolyakov/output-notification-payload
         with:
-          status: ${{ job.status }}
+          status: ${{ inputs.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
           notification_title: ${{ inputs.notification_title }}
           message_format: "{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}>"
