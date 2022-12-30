@@ -8,7 +8,7 @@ on:
   workflow_call:
     inputs:
       notify_when:
-        default: "failure"
+        default: "success,failure,cancelled,warnings,skipped"
         required: false
         type: string
       notification_title:
