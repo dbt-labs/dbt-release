@@ -85,7 +85,7 @@ on:
 
 permissions:
   contents: write
-  # this will be needed if we go with OIDC for auth instead of manageing secrets in github for AWS
+  # this will be needed if we go with OIDC for auth instead of managing secrets in github for AWS
   # id-token: write  # https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-cloud-providers#adding-permissions-settings
 
 env:
@@ -108,7 +108,7 @@ jobs:
           echo The s3 bucket name:                 ${{ inputs.s3_bucket_name }}
           echo The package test command:           ${{ inputs.package_test_command }}
           echo Test run:                           ${{ inputs.test_run }}
-          # ENVIROMENT VARIABLES
+          # ENVIRONMENT VARIABLES
           echo GitHub artifact retention days:     ${{ env.ARTIFACT_RETENTION_DAYS }}
           echo Amazon Web Services region:         ${{ env.AWS_REGION }}
           echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
@@ -177,7 +177,7 @@ jobs:
             message="Version set to ${{ inputs.version_number }}."
             echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
-            message="Version not set to ${{ inputs.version_number }}. The versionbump worklow must be complete before running this workflow."
+            message="Version not set to ${{ inputs.version_number }}. The version bump workflow must be complete before running this workflow."
             git status
             echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
