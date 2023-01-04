@@ -62,6 +62,10 @@ on:
       changelog_path:
         description: The path to the changelog for this version
         value: ${{ jobs.audit-changelog.outputs.changelog_path }}
+    secrets:
+      FISHTOWN_BOT_PAT:
+        description: "Token to commit/merge changes into branches"
+        required: true
 
 permissions:
   contents: write
@@ -461,7 +465,7 @@ jobs:
         with:
           source_ref: ${{ needs.create-temp-branch.outputs.branch_name }}
           target_branch: ${{ inputs.target_branch }}
-          github_token: ${{ secrets.GITHUB_TOKEN }} # TODO: probably need to use a custom PAT to override ``.latest`` protection rules
+          github_token: ${{ secrets.FISHTOWN_BOT_PAT }} # TODO: probably need to use a custom PAT to override ``.latest`` protection rules
           commit_message_template: "[Automated] Merged {source_ref} into target {target_branch} during release process"
 
   determine-release-sha:
