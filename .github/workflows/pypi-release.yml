@@ -78,12 +78,18 @@ jobs:
       exists: ${{ steps.version_existence.outputs.is_exists }}
 
     steps:
-      - name: "Fetch PyPI Info For ${{ needs.sanitize-package-name.outputs.name }} Package"
+      - name: "Audit Version And Parse Into Parts"
+        id: semver
+        uses: dbt-labs/actions/parse-semver@users/alexander-smolyakov/parse-semver-fix-warnings
+        with:
+          version: ${{ steps.version-number-sources.outputs.current_version }}
+
+      - name: "Fetch PyPI Info For ${{ steps.semver.outputs.version }} Package"
         id: pypi_info
         uses: dbt-labs/actions/py-package-info@users/alexander-smolyakov/py-package-info-add-ability-to-select-package-index
         with:
           package: ${{ needs.sanitize-package-name.outputs.name }}
-          version: ${{ inputs.version_number }}
+          version: ${{ steps.semver.outputs.version }}
           check-test-index: ${{ inputs.test_run }}
 
       - name: "Set Version Existence For Subsequent Jobs"
@@ -168,19 +174,25 @@ jobs:
     if: always()
 
     steps:
+      - name: "Audit Version And Parse Into Parts"
+        id: semver
+        uses: dbt-labs/actions/parse-semver@users/alexander-smolyakov/parse-semver-fix-warnings
+        with:
+          version: ${{ steps.version-number-sources.outputs.current_version }}
+
       - name: "Fetch PyPI Info For ${{ needs.sanitize-package-name.outputs.name }} Package"
         id: pypi_info
         uses: dbt-labs/actions/py-package-info@users/alexander-smolyakov/py-package-info-add-ability-to-select-package-index
         with:
           package: ${{ needs.sanitize-package-name.outputs.name }}
-          version: ${{ inputs.version_number }}
+          version: ${{ steps.semver.outputs.version }}
           check-test-index: ${{ inputs.test_run }}
 
       - name: "Validate PyPI Info"
         id: is-version-available
         run: |
           is_available=false
-          if [[ ${{ steps.pypi_info.outputs.version }} == ${{ inputs.version_number }} ]]
+          if [[ ${{ steps.pypi_info.outputs.version }} == ${{ steps.semver.outputs.version }} ]]
           then
             is_available=true
           fi
@@ -191,10 +203,10 @@ jobs:
           title="Availability Validation"
           if [[ ${{ steps.is-version-available.outputs.is_available }} == true ]]
           then
-            message="The ${{ needs.sanitize-package-name.outputs.name }} v.${{ inputs.version_number }} version available in PyPI."
+            message="The ${{ needs.sanitize-package-name.outputs.name }} v.${{ steps.semver.outputs.version }} version available in PyPI."
             echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
-            message="The info about ${{ needs.sanitize-package-name.outputs.name }} v.${{ inputs.version_number }} version is not available in PyPI. Manual intervention required."
+            message="The info about ${{ needs.sanitize-package-name.outputs.name }} v.${{ steps.semver.outputs.version }} version is not available in PyPI. Manual intervention required."
             echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
           fi
