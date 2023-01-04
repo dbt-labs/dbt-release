@@ -82,7 +82,7 @@ jobs:
         id: semver
         uses: dbt-labs/actions/parse-semver@users/alexander-smolyakov/parse-semver-fix-warnings
         with:
-          version: ${{ steps.version-number-sources.outputs.current_version }}
+          version: ${{ inputs.version_number }}
 
       - name: "Fetch PyPI Info For ${{ steps.semver.outputs.version }} Package"
         id: pypi_info
@@ -178,7 +178,7 @@ jobs:
         id: semver
         uses: dbt-labs/actions/parse-semver@users/alexander-smolyakov/parse-semver-fix-warnings
         with:
-          version: ${{ steps.version-number-sources.outputs.current_version }}
+          version: ${{ inputs.version_number }}
 
       - name: "Fetch PyPI Info For ${{ needs.sanitize-package-name.outputs.name }} Package"
         id: pypi_info
