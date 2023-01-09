@@ -140,7 +140,7 @@ jobs:
           name: ${{ inputs.version_number }}
           path: .
 
-      - name: "Publish ${{ needs.sanitize-package-name.outputs.name }} v.${{ inputs.version_number }} To Test PyPI"
+      - name: "Publish ${{ needs.sanitize-package-name.outputs.name }} v${{ inputs.version_number }} To Test PyPI"
         uses: pypa/gh-action-pypi-publish@v1.6.4
         with:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
@@ -162,7 +162,7 @@ jobs:
           name: ${{ inputs.version_number }}
           path: .
 
-      - name: "Publish ${{ needs.sanitize-package-name.outputs.name }} v.${{ inputs.version_number }} To PyPI"
+      - name: "Publish ${{ needs.sanitize-package-name.outputs.name }} v${{ inputs.version_number }} To PyPI"
         uses: pypa/gh-action-pypi-publish@v1.6.4
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
@@ -203,10 +203,10 @@ jobs:
           title="Availability Validation"
           if [[ ${{ steps.is-version-available.outputs.is_available }} == true ]]
           then
-            message="The ${{ needs.sanitize-package-name.outputs.name }} v.${{ steps.semver.outputs.version }} version available in PyPI."
+            message="The ${{ needs.sanitize-package-name.outputs.name }} v${{ steps.semver.outputs.version }} version available in PyPI."
             echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
-            message="The info about ${{ needs.sanitize-package-name.outputs.name }} v.${{ steps.semver.outputs.version }} version is not available in PyPI. Manual intervention required."
+            message="The info about ${{ needs.sanitize-package-name.outputs.name }} v${{ steps.semver.outputs.version }} version is not available in PyPI. Manual intervention required."
             echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
           fi
