@@ -129,7 +129,7 @@ jobs:
     needs: [sanitize-package-name, check-package-exists-pypi]
     if: >-
       needs.check-package-exists-pypi.outputs.exists == 'false' &&
-      inputs.test_run == 'true'
+      inputs.test_run == true
 
     environment: PypiTest
 
