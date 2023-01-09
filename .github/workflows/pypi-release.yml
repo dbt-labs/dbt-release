@@ -3,7 +3,7 @@
 #
 # Inputs:
 #   version_number: The release version number (i.e. 1.0.0b1, 1.2.3rc2, 1.0.0)
-#   test_run      : Test run (True - release to Test PyPI, False - release to PyPI)
+#   test_run      : Test run (true - release to Test PyPI, false - release to PyPI)
 #
 # **why?**
 # Automate the release process
