@@ -150,7 +150,7 @@ jobs:
 
       - name: "Audit Version And Parse Into Parts"
         id: semver
-        uses: dbt-labs/actions/parse-semver@users/alexander-smolyakov/parse-semver-fix-warnings
+        uses: dbt-labs/actions/parse-semver@v1
         with:
           version: ${{ inputs.version_number }}
 
