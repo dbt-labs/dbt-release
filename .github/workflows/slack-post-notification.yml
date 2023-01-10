@@ -1,0 +1,80 @@
+# **what?**
+# Post notification to Slack channel
+#
+# Inputs:
+#  status:             Workflow status (Expected values: success, failure, cancelled, warnings, skipped)
+#  notify_when:        Specify on which status a slack notification is sent (By default: notification will be sent for all statuses)
+#  notification_title: Specify on the notification message title (By default: Release Process Status)
+#
+# **why?**
+# Reusable and configured workflow to post notification to Slack
+#
+# **when?**
+# Depends on configuration
+
+name: Post Slack Notification
+
+on:
+  workflow_call:
+    inputs:
+      status:
+        type: string
+        required: true
+      notify_when:
+        default: "success,failure,cancelled,warnings,skipped"
+        required: false
+        type: string
+      notification_title:
+        default: "Release Process Status"
+        required: false
+        type: string
+    secrets:
+      SLACK_WEBHOOK_URL:
+        description: Slack app webhook url
+        required: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NOTIFICATION_PREFIX: "[Slack Notification]"
+
+jobs:
+  log-inputs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "[DEBUG] Print Variables"
+        run: |
+          # WORKFLOW INPUTS
+          echo Status:              ${{ inputs.status }}
+          echo Notify when:         ${{ inputs.notify_when }}
+          echo Notification title:  ${{ inputs.notification_title }}
+          # ENVIRONMENT VARIABLES
+          echo Notification prefix: ${{ env.NOTIFICATION_PREFIX }}
+
+  slack-post-notification:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Post Slack Notification"
+        uses: ravsamhq/notify-slack-action@2.3.0
+        with:
+          status: ${{ inputs.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ inputs.notification_title }}
+          message_format: "{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}>"
+          footer: "<{run_url}|View Run>"
+          notify_when: ${{ inputs.notify_when }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: "[Notification] Post Slack Notification"
+        run: |
+          title="Notification successfully sent"
+          message="The '${{ inputs.notification_title }}' notification sent to Slack. Overall workflow status: ${{ inputs.status }}."
+          echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
