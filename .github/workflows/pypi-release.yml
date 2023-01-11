@@ -172,7 +172,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [sanitize-package-name, test-pypi-release, prod-pypi-release]
     # always run this step because one of the needs are always skipped.
-    if: ${{ success() }}
+    if: ${{ !failure() && !cancelled() }}
 
     steps:
       - name: "Audit Version And Parse Into Parts"
