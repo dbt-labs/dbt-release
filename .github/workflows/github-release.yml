@@ -42,7 +42,7 @@ on:
       test_run:
         description: Test run (Publish release as draft)
         required: true
-        type: string
+        type: boolean
     outputs:
       tag:
         description: The path to the changelog for this version
@@ -180,7 +180,9 @@ jobs:
   publish-draft-release:
     runs-on: ubuntu-latest
     needs: [check-release-exists, audit-release-different-commit]
-    if: inputs.test_run  == 'false' && needs.check-release-exists.outputs.draft_exists == 'true'
+    if: >-
+       needs.check-release-exists.outputs.draft_exists == 'true' &&
+       inputs.test_run  == false
 
     steps:
       - name: "Publish Draft Release - ${{ needs.check-release-exists.outputs.tag }}"

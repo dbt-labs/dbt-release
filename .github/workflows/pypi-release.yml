@@ -29,8 +29,9 @@ on:
         required: true
         type: string
       test_run:
+        description: ""
         required: true
-        type: string
+        type: boolean
     # pass through secrets for both PyPi Test and Prod so they're always there
     secrets:
       PYPI_API_TOKEN:
