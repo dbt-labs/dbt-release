@@ -73,6 +73,10 @@ on:
         required: false
         default: true
         type: boolean
+      nightly_release:
+        type: boolean
+        default: false
+        required: false
 
     # pass through secrets so every repo can have their own and won't depend on a name
     secrets:
@@ -125,7 +129,7 @@ jobs:
         run: |
           # Resolve folder to upload/check build artifact
           artifact_folder="artifacts"
-          if [[ ${{ github.event_name }} == "schedule" ]]
+          if [[ ${{ inputs.nightly_release }} == true ]]
           then
             artifact_folder="nightly-releases"
           elif [[ ${{ inputs.test_run }} == true ]]

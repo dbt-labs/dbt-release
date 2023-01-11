@@ -55,6 +55,10 @@ on:
         required: false
         default: true
         type: boolean
+      nightly_release:
+        type: boolean
+        default: false
+        required: false
     outputs:
       final_sha:
         description: The new commit that includes the changelog and version bump.
@@ -242,7 +246,7 @@ jobs:
         id: variables
         run: |
           name="prep-release/"
-          if [[ ${{ github.event_name }} == "schedule" ]]
+          if [[ ${{ inputs.nightly_release }} == true  ]]
           then
             name+="nightly-release/"
           elif [[ ${{ inputs.test_run }} == true ]]
