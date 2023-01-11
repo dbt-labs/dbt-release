@@ -92,6 +92,7 @@ jobs:
           package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ steps.semver.outputs.version }}
           check-test-index: ${{ inputs.test_run }}
+          retries: 1
 
       - name: "Set Version Existence For Subsequent Jobs"
         # The above step will just use the latest version if the input version
@@ -100,7 +101,7 @@ jobs:
         id: version_existence
         run: |
           is_exists=false
-          if [[ ${{ steps.pypi_info.outputs.version }} == ${{ inputs.version_number }} ]]
+          if [[ ${{ steps.pypi_info.outputs.version }} == ${{ steps.semver.outputs.version }} ]]
           then
             is_exists=true
           fi
@@ -188,6 +189,7 @@ jobs:
           package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ steps.semver.outputs.version }}
           check-test-index: ${{ inputs.test_run }}
+          retries: 4
 
       - name: "Validate PyPI Info"
         id: is-version-available
