@@ -125,7 +125,10 @@ jobs:
         run: |
           # Resolve folder to upload/check build artifact
           artifact_folder="artifacts"
-          if [[ ${{ inputs.test_run }} == true ]]
+          if [[ ${{ github.event_name }} == "schedule" ]]
+          then
+            artifact_folder="nightly-releases"
+          elif [[ ${{ inputs.test_run }} == true ]]
           then
             artifact_folder="artifacts_testing"
           fi
