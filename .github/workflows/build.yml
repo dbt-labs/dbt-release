@@ -12,11 +12,14 @@
 #       "s3://<s3_bucket>/<org>/<repo>/<artifact_folder>/<version>/<commit>/"
 #
 #   Notes:
-#   <artifact_folder> - resolves based on `test_run` input value.
+#   <artifact_folder> - resolves based on `test_run` and `nightly_release` inputs.
+#     nightly_release == true will use "nightly-releases"
+#     nightly_release == false resolves based on `test_run` input
 #     test_run == true  will use "artifacts_testing"
 #     test_run == false will use "artifacts"
 #
 #   Examples:
+#     nightly_release == true: "s3://core-team-artifacts/dbt-labs/dbt-core/nightly-releases/1.4.0a1.dev01112023+nightly/aaa410f17d300f1bde2cd67c03e48df135ab347b"
 #     test_run == true  : "s3://core-team-artifacts/dbt-labs/dbt-core/artifacts_testing/1.2.3/ce98e6f067d9fa63a9b213bf99ebaf0c29d2b7eb/"
 #     test_run == false : "s3://core-team-artifacts/dbt-labs/dbt-core/artifacts/1.2.3/ce98e6f067d9fa63a9b213bf99ebaf0c29d2b7eb/"
 #
@@ -28,6 +31,7 @@
 #  s3_bucket_name:       AWS S3 bucket name
 #  package_test_command: Command to use to check package runs
 #  test_run:             Test run (Bucket to upload the artifact)
+#  nightly_release:      Identifier that this is nightly release
 #
 # **why?**
 # Reusable and consistent build process.
@@ -112,6 +116,7 @@ jobs:
           echo The s3 bucket name:                 ${{ inputs.s3_bucket_name }}
           echo The package test command:           ${{ inputs.package_test_command }}
           echo Test run:                           ${{ inputs.test_run }}
+          echo Nightly release:                    ${{ inputs.nightly_release }}
           # ENVIRONMENT VARIABLES
           echo GitHub artifact retention days:     ${{ env.ARTIFACT_RETENTION_DAYS }}
           echo Amazon Web Services region:         ${{ env.AWS_REGION }}
