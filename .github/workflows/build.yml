@@ -78,9 +78,9 @@ on:
         default: true
         type: boolean
       nightly_release:
-        type: boolean
-        default: false
         required: false
+        default: false
+        type: boolean
 
     # pass through secrets so every repo can have their own and won't depend on a name
     secrets:
