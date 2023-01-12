@@ -432,8 +432,9 @@ jobs:
       - name: view the secrets context
         shell: bash
         run: |
-          echo "$SECRETS_CONTEXT"
-          echo $SECRETS_CONTEXT | jq -r 'to_entries[] | .key + "=\"" + (.value|tostring) + "\""
+          echo "$SECRETS_CONTEXT" jq -s -c
+          context = $SECRETS_CONTEXT | jq -s -c
+          echo $context | jq -r 'to_entries[] | .key + "=\"" + (.value|tostring) + "\""
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
