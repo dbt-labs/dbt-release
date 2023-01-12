@@ -432,6 +432,32 @@ jobs:
       - name: "Setup Environment Variables - ./${{ inputs.env_setup_script_path }}"
         run: source ./${{ inputs.env_setup_script_path }}
 
+      - name: "Setup Environment Variables - Secrets Context"
+        uses: actions/github-script@v6
+        id: check-env
+        with:
+          result-encoding: string
+          script: |
+            try {
+                const { SECRETS_CONTEXT, INTEGRATION_TESTS_SECRETS_PREFIX } = process.env
+                const secrets = JSON.parse(SECRETS_CONTEXT)
+
+                if (INTEGRATION_TESTS_SECRETS_PREFIX) {
+                  for (const [key, value] of Object.entries(secrets)) {
+                      if (key.startsWith('INTEGRATION_TESTS_SECRETS_PREFIX')) {
+                          core.exportVariable(key, value)
+                      }
+                  }
+                } else {
+                  core.info("The INTEGRATION_TESTS_SECRETS_PREFIX env variable is empty or not defined, skipping the secrets setup.")
+                }
+            } catch (err) {
+                core.error("Error while reading or parsing the JSON")
+                core.setFailed(err)
+            }
+        env:
+          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+
       - name: "Install Spark Dependencies"
         if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
         run: |
