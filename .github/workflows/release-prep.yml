@@ -432,9 +432,26 @@ jobs:
       - name: view the secrets context
         shell: bash
         run: |
-          echo "$SECRETS_CONTEXT" jq -s -c
-          context = $SECRETS_CONTEXT | jq -s -c
-          echo $context | jq -r 'to_entries[] | .key + "=\"" + (.value|tostring) + "\""
+          echo "$SECRETS_CONTEXT"
+
+      - name: "Read JSON"
+        uses: actions/github-script@v6
+        id: check-env
+        with:
+          result-encoding: string
+          script: |
+            try {
+                const { SECRETS_CONTEXT } = process.env
+                const parsed = JSON.parse(SECRETS_CONTEXT);
+                for (const [key, value] of Object.entries(parsed)) {
+                    if (key.startsWith('SNOWFLAKE_TEST')) {
+                        core.exportVariable(key, value);
+                    }
+                }
+            } catch (err) {
+                core.error("Error while reading or parsing the JSON")
+                core.setFailed(err)
+            }
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
