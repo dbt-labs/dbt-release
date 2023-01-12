@@ -429,6 +429,12 @@ jobs:
         with:
           ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
+      - name: view the secrets context
+        shell: bash
+        run: echo "$SECRETS_CONTEXT"
+        env:
+          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+
       - name: "Setup Environment Variables - ./${{ inputs.env_setup_script_path }}"
         run: source ./${{ inputs.env_setup_script_path }}
 
