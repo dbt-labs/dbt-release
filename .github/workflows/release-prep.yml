@@ -444,7 +444,7 @@ jobs:
 
                 if (INTEGRATION_TESTS_SECRETS_PREFIX) {
                   for (const [key, value] of Object.entries(secrets)) {
-                      if (key.startsWith('INTEGRATION_TESTS_SECRETS_PREFIX')) {
+                      if (key.startsWith(INTEGRATION_TESTS_SECRETS_PREFIX)) {
                           core.exportVariable(key, value)
                       }
                   }
