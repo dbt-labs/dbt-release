@@ -421,7 +421,7 @@ jobs:
     if: inputs.env_setup_script_path != ''
 
     env:
-      TOXENV: integration
+      TOXENV: integration-snowflake
 
     steps:
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
