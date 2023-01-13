@@ -215,7 +215,7 @@ jobs:
         run: |
           # Send notification
           title="Skip changelog generation"
-          message="A changelog file already exists at ${{ needs.audit-changelog.outputs.exists }}, skipping generating changelog"
+          message="A changelog file already exists at ${{ needs.audit-changelog.outputs.changelog_path }}, skipping generating changelog"
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
   skip-version-bump:
