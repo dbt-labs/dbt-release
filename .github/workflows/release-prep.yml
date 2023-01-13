@@ -7,6 +7,7 @@
 #  target_branch:         The branch that we will release from
 #  env_setup_script_path: Path to the environment setup script
 #  test_run:              Test run (The temp branch will be used for release)
+#  nightly_release:       Identifier that this is nightly release
 #
 # Outputs:
 #   final_sha:      The sha that will actually be released.  This can differ from the
@@ -18,8 +19,9 @@
 #  - For normal runs the temp branch will be removed once changes were merged to target branch;
 #  - For test runs we will keep temp branch and will use it for release;
 #  Naming strategy:
-#  - For normal runs: prep-release/${{ inputs.version_number }}_$GITHUB_RUN_ID
-#  - For test runs: prep-release/test-run/${{ inputs.version_number }}_$GITHUB_RUN_ID
+#  - For normal runs:      prep-release/${{ inputs.version_number }}_$GITHUB_RUN_ID
+#  - For test runs:        prep-release/test-run/${{ inputs.version_number }}_$GITHUB_RUN_ID
+#  - For nightly releases: prep-release/nightly-release/${{ inputs.version_number }}_$GITHUB_RUN_ID
 #
 # **why?**
 # Reusable and consistent GitHub release process.
@@ -55,6 +57,10 @@ on:
         required: false
         default: true
         type: boolean
+      nightly_release:
+        type: boolean
+        default: false
+        required: false
     outputs:
       final_sha:
         description: The new commit that includes the changelog and version bump.
@@ -91,6 +97,7 @@ jobs:
           echo The branch that we will release from: ${{ inputs.target_branch }}
           echo Path to the environment setup script: ${{ inputs.env_setup_script_path }}
           echo Test run:                             ${{ inputs.test_run }}
+          echo Nightly release:                      ${{ inputs.nightly_release }}
           # ENVIRONMENT VARIABLES
           echo Python target version:                ${{ env.PYTHON_TARGET_VERSION }}
           echo Notification prefix:                  ${{ env.NOTIFICATION_PREFIX }}
@@ -113,7 +120,7 @@ jobs:
 
       - name: "Audit Version And Parse Into Parts"
         id: semver
-        uses: dbt-labs/actions/parse-semver@dc183a8f07a756c6bb5e5fca63a2848b1fe781c8
+        uses: dbt-labs/actions/parse-semver@v1.1.0
         with:
           version: ${{ inputs.version_number }}
 
@@ -208,7 +215,7 @@ jobs:
         run: |
           # Send notification
           title="Skip changelog generation"
-          message="A changelog file already exists at ${{ needs.audit-changelog.outputs.exists }}, skipping generating changelog"
+          message="A changelog file already exists at ${{ needs.audit-changelog.outputs.changelog_path }}, skipping generating changelog"
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
   skip-version-bump:
@@ -242,7 +249,10 @@ jobs:
         id: variables
         run: |
           name="prep-release/"
-          if [[ ${{ inputs.test_run }} == true ]]
+          if [[ ${{ inputs.nightly_release }} == true  ]]
+          then
+            name+="nightly-release/"
+          elif [[ ${{ inputs.test_run }} == true ]]
           then
             name+="test-run/"
           fi
@@ -421,6 +431,32 @@ jobs:
 
       - name: "Setup Environment Variables - ./${{ inputs.env_setup_script_path }}"
         run: source ./${{ inputs.env_setup_script_path }}
+
+      - name: "Setup Environment Variables - Secrets Context"
+        uses: actions/github-script@v6
+        id: check-env
+        with:
+          result-encoding: string
+          script: |
+            try {
+                const { SECRETS_CONTEXT, INTEGRATION_TESTS_SECRETS_PREFIX } = process.env
+                const secrets = JSON.parse(SECRETS_CONTEXT)
+
+                if (INTEGRATION_TESTS_SECRETS_PREFIX) {
+                  for (const [key, value] of Object.entries(secrets)) {
+                      if (key.startsWith(INTEGRATION_TESTS_SECRETS_PREFIX)) {
+                          core.exportVariable(key, value)
+                      }
+                  }
+                } else {
+                  core.info("The INTEGRATION_TESTS_SECRETS_PREFIX env variable is empty or not defined, skipping the secrets setup.")
+                }
+            } catch (err) {
+                core.error("Error while reading or parsing the JSON")
+                core.setFailed(err)
+            }
+        env:
+          SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: "Install Spark Dependencies"
         if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}

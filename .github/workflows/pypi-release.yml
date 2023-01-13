@@ -29,8 +29,9 @@ on:
         required: true
         type: string
       test_run:
+        description: ""
         required: true
-        type: string
+        type: boolean
     # pass through secrets for both PyPi Test and Prod so they're always there
     secrets:
       PYPI_API_TOKEN:
@@ -80,17 +81,18 @@ jobs:
     steps:
       - name: "Audit Version And Parse Into Parts"
         id: semver
-        uses: dbt-labs/actions/parse-semver@dc183a8f07a756c6bb5e5fca63a2848b1fe781c8
+        uses: dbt-labs/actions/parse-semver@v1.1.0
         with:
           version: ${{ inputs.version_number }}
 
       - name: "Fetch PyPI Info For ${{ steps.semver.outputs.version }} Package"
         id: pypi_info
-        uses: dbt-labs/actions/py-package-info@c00eb536420d454ba5fdf90ac4571e360f0c7524
+        uses: dbt-labs/actions/py-package-info@v1.1.0
         with:
           package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ steps.semver.outputs.version }}
           check-test-index: ${{ inputs.test_run }}
+          retries: 1
 
       - name: "Set Version Existence For Subsequent Jobs"
         # The above step will just use the latest version if the input version
@@ -99,7 +101,7 @@ jobs:
         id: version_existence
         run: |
           is_exists=false
-          if [[ ${{ steps.pypi_info.outputs.version }} == ${{ inputs.version_number }} ]]
+          if [[ ${{ steps.pypi_info.outputs.version }} == ${{ steps.semver.outputs.version }} ]]
           then
             is_exists=true
           fi
@@ -171,22 +173,23 @@ jobs:
     runs-on: ubuntu-latest
     needs: [sanitize-package-name, test-pypi-release, prod-pypi-release]
     # always run this step because one of the needs are always skipped.
-    if: ${{ success() }}
+    if: always() && contains(needs.*.result, 'success')
 
     steps:
       - name: "Audit Version And Parse Into Parts"
         id: semver
-        uses: dbt-labs/actions/parse-semver@dc183a8f07a756c6bb5e5fca63a2848b1fe781c8
+        uses: dbt-labs/actions/parse-semver@v1.1.0
         with:
           version: ${{ inputs.version_number }}
 
       - name: "Fetch PyPI Info For ${{ needs.sanitize-package-name.outputs.name }} Package"
         id: pypi_info
-        uses: dbt-labs/actions/py-package-info@c00eb536420d454ba5fdf90ac4571e360f0c7524
+        uses: dbt-labs/actions/py-package-info@v1.1.0
         with:
           package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ steps.semver.outputs.version }}
           check-test-index: ${{ inputs.test_run }}
+          retries: 4
 
       - name: "Validate PyPI Info"
         id: is-version-available
