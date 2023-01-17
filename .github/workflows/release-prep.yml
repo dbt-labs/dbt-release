@@ -487,8 +487,8 @@ jobs:
     needs: [run-unit-tests, run-integration-tests, create-temp-branch]
     if: >-
       inputs.test_run == false
-      && contains(needs.run-unit-tests.result, 'failure') 
-      || contains(needs.run-integration-tests.result, 'failure') 
+      && contains(needs.run-unit-tests.result, 'success') 
+      || contains(needs.run-integration-tests.result, 'success') 
 
     steps:
       - name: "[Debug] Print Variables"
