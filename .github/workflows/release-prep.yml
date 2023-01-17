@@ -485,7 +485,7 @@ jobs:
   merge-changes-into-target-branch:
     runs-on: ubuntu-latest
     needs: [run-unit-tests, run-integration-tests, create-temp-branch]
-    if: ${{ inputs.test_run == false !failure() && !cancelled() }}
+    if: ${{ inputs.test_run == false && !failure() && !cancelled() }}
 
     steps:
       - name: "[Debug] Print Variables"
