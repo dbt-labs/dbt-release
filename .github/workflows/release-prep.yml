@@ -486,8 +486,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [run-unit-tests, run-integration-tests, create-temp-branch]
     if: >-
-      !failure()
-      && !cancelled()
+      inputs.test_run == false 
+      || needs.run-unit-tests.result == 'success'
+      || needs.run-integration-tests.result == 'success'
 
     steps:
       - name: "[Debug] Print Variables"
@@ -516,9 +517,7 @@ jobs:
         audit-version-in-code,
       ]
     # always run this job, regardless of if the dependant jobs were skipped
-    if: >-
-      !failure()
-      && !cancelled()
+    if: ${{ !failure() && !cancelled() }}
 
     # Get the sha that will be released.  If the changelog already exists on the input sha and the version has already been bumped,
     # then it is what we will release. Otherwise we generated a changelog and did the version bump in this workflow and there is a
