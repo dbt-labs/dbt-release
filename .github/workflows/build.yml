@@ -281,7 +281,7 @@ jobs:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
       - name: "Install Spark Dependencies"
-        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
         run: |
           sudo apt-get install libsasl2-dev
 

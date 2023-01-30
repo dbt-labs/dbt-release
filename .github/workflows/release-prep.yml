@@ -286,7 +286,7 @@ jobs:
           ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
       - name: "Install Spark Dependencies"
-        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
         run: |
           sudo apt-get install libsasl2-dev
 
@@ -399,7 +399,7 @@ jobs:
           ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
       - name: "Install Spark Dependencies"
-        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
         run: |
           sudo apt-get install libsasl2-dev
 
@@ -462,7 +462,7 @@ jobs:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: "Install Spark Dependencies"
-        if: ${{ github.repository == 'dbt-labs/dbt-spark-release-test' }}
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
         run: |
           sudo apt-get install libsasl2-dev
 
@@ -472,7 +472,7 @@ jobs:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
       - name: "Set Up Postgres (Linux)"
-        if: ${{ github.repository == 'dbt-labs/dbt-core-release-test' }}
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-core') }}
         uses: ./.github/actions/setup-postgres-linux
 
       - name: "Install python tools"
