@@ -315,20 +315,6 @@ jobs:
           changie merge
           git status
 
-      # this step will fail on whitespace errors but also correct them
-      - name: "Remove Trailing Whitespace Via Pre-commit"
-        continue-on-error: true
-        run: |
-          pre-commit run trailing-whitespace --files .bumpversion.cfg CHANGELOG.md .changes/*
-          git status
-
-      # this step will fail on newline errors but also correct them
-      - name: "Removing Extra Newlines Via Pre-commit"
-        continue-on-error: true
-        run: |
-          pre-commit run end-of-file-fixer --files .bumpversion.cfg CHANGELOG.md .changes/*
-          git status
-
       - name: "Check Changelog Created Successfully"
         if: needs.audit-changelog.outputs.exists == 'false'
         run: |
@@ -370,6 +356,20 @@ jobs:
           title="Version bump"
           message="Version successfully bumped in codebase to ${{ inputs.version_number }}"
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+
+      # this step will fail on whitespace errors but also correct them
+      - name: "Remove Trailing Whitespace Via Pre-commit"
+        continue-on-error: true
+        run: |
+          pre-commit run trailing-whitespace --files .bumpversion.cfg CHANGELOG.md .changes/*
+          git status
+
+      # this step will fail on newline errors but also correct them
+      - name: "Removing Extra Newlines Via Pre-commit"
+        continue-on-error: true
+        run: |
+          pre-commit run end-of-file-fixer --files .bumpversion.cfg CHANGELOG.md .changes/*
+          git status
 
       - name: "Commit & Push Changes"
         run: |
