@@ -300,6 +300,20 @@ jobs:
           brew tap miniscruff/changie https://github.com/miniscruff/changie
           brew install changie
 
+      - name: "Get Core Team Membership"
+        run: |
+          gh api -H "Accept: application/vnd.github+json" orgs/dbt-labs/teams/Core/members > output.json
+        env:
+          GH_TOKEN: ${{ secrets.IT_TEAM_MEMBERSHIP }}
+
+      - name: "Set Core Team Membership for Changie Contributors exclusion"
+        id: set_team_membership
+        run: |
+          team_list=$(jq -r '.[].login' output.json)
+          echo $team_list
+          team_list_single=$(echo $team_list | tr '\n' ' ')
+          echo "CHANGIE_CORE_TEAM=$team_list_single" >> $GITHUB_ENV
+
       - name: "Generate Release Changelog"
         if: needs.audit-changelog.outputs.exists == 'false'
         run: |
