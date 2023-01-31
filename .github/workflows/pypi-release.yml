@@ -189,7 +189,7 @@ jobs:
           package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ steps.semver.outputs.version }}
           check-test-index: ${{ inputs.test_run }}
-          retries: 4
+          retries: 8
 
       - name: "Validate PyPI Info"
         id: is-version-available
