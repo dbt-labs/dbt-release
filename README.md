@@ -46,4 +46,4 @@ To use workflows inside other workflows, you can use the `main` branch or specif
 - Install pre-commit ([docs](https://pre-commit.com/#installation));
 - Use the following [guidelines](https://github.com/dbt-labs/dbt-core/blob/main/.github/_README.md) during development;
 - Each workflow should be self-documented;
-- It is recommended to use [act](https://github.com/nektos/act) for testing locally where possible.
+- It is recommended to use the [act](https://github.com/nektos/act) for testing locally where possible.
