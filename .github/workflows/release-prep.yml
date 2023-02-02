@@ -72,6 +72,9 @@ on:
       FISHTOWN_BOT_PAT:
         description: "Token to commit/merge changes into branches"
         required: true
+      IT_TEAM_MEMBERSHIP:
+        description: "Token that can view org level teams"
+        required: true
 
 permissions:
   contents: write
