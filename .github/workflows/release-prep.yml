@@ -135,7 +135,7 @@ jobs:
           then
             path+="${{ steps.semver.outputs.base-version }}-${{ steps.semver.outputs.pre-release }}.md"
           else
-            path+="${{ steps.semver.outputs.version }}.md"
+            path+="${{ steps.semver.outputs.base-version }}.md"
           fi
           # Send notification
           echo "changelog_path=$path" >> $GITHUB_OUTPUT
