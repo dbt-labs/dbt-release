@@ -303,19 +303,28 @@ jobs:
           brew tap miniscruff/changie https://github.com/miniscruff/changie
           brew install changie
 
+      - name: "Set json File Name"
+        id: json_file
+        run: |
+          echo "name=output_$GITHUB_RUN_ID.json" >> $GITHUB_OUTPUT
+
       - name: "Get Core Team Membership"
         run: |
-          gh api -H "Accept: application/vnd.github+json" orgs/dbt-labs/teams/Core/members > output.json
+          gh api -H "Accept: application/vnd.github+json" orgs/dbt-labs/teams/Core/members > ${{ steps.json_file.outputs.name }}
         env:
           GH_TOKEN: ${{ secrets.IT_TEAM_MEMBERSHIP }}
 
       - name: "Set Core Team Membership for Changie Contributors exclusion"
         id: set_team_membership
         run: |
-          team_list=$(jq -r '.[].login' output.json)
+          team_list=$(jq -r '.[].login' ${{ steps.json_file.outputs.name }})
           echo $team_list
           team_list_single=$(echo $team_list | tr '\n' ' ')
           echo "CHANGIE_CORE_TEAM=$team_list_single" >> $GITHUB_ENV
+
+      - name: "Delete the json File"
+        run: |
+          rm ${{ steps.json_file.outputs.name }}
 
       - name: "Generate Release Changelog"
         if: needs.audit-changelog.outputs.exists == 'false'
