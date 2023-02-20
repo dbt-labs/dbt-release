@@ -135,7 +135,7 @@ jobs:
           then
             path+="${{ steps.semver.outputs.base-version }}-${{ steps.semver.outputs.pre-release }}.md"
           else
-            path+="${{ steps.semver.outputs.version }}.md"
+            path+="${{ steps.semver.outputs.base-version }}.md"
           fi
           # Send notification
           echo "changelog_path=$path" >> $GITHUB_OUTPUT
@@ -157,9 +157,9 @@ jobs:
           title="Changelog exists"
           if [[ ${{ steps.set_existence.outputs.exists }} == true ]]
           then
-            message="Changelog file for ${{ inputs.version_number }} already exists"
+            message="Changelog file ${{ steps.set_path.outputs.changelog_path }} already exists"
           else
-            message="Changelog file for ${{ inputs.version_number }} doesn't exist"
+            message="Changelog file ${{ steps.set_path.outputs.changelog_path }} doesn't exist"
           fi
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
