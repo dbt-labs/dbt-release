@@ -529,8 +529,9 @@ jobs:
         run: |
           echo target_branch: ${{ inputs.target_branch }}
           echo branch_name:   ${{ needs.create-temp-branch.outputs.branch_name }}
-          echo needs.audit-changelog.outputs.exists: ${{ needs.audit-changelog.outputs.exists }}
-          echo needs.audit-version-in-code.outputs.up_to_date: ${{ needs.audit-version-in-code.outputs.up_to_date }}
+          echo inputs.test_run: ${{ inputs.test_run }} ${{ inputs.test_run == false}}
+          echo needs.audit-changelog.outputs.exists: ${{ needs.audit-changelog.outputs.exists }} ${{ needs.audit-changelog.outputs.exists == 'false' }}
+          echo needs.audit-version-in-code.outputs.up_to_date: ${{ needs.audit-version-in-code.outputs.up_to_date }} ${{ needs.audit-version-in-code.outputs.up_to_date == 'false' }}
 
       - name: "Checkout Repo ${{ github.repository }}"
         uses: actions/checkout@v3
