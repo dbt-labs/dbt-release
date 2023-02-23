@@ -526,7 +526,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: "Merge Changes Into ${{ inputs.target_branch }}"
-        if: ${{ needs.create-temp-branch.outputs.branch_name != ''}}
+        if: ${{ needs.create-temp-branch.result == 'success'}}
         uses: everlytic/branch-merge@1.1.2
         with:
           source_ref: ${{ needs.create-temp-branch.outputs.branch_name }}
