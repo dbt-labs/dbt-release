@@ -516,9 +516,9 @@ jobs:
     needs: [run-unit-tests, run-integration-tests, create-temp-branch, audit-version-in-code, audit-changelog]
     if: |
       ${{
+        !failure() && !cancelled() &&
         inputs.test_run == false &&
-        !failure() &&
-        !cancelled() && (
+        (
           needs.audit-changelog.outputs.exists == 'false' ||
           needs.audit-version-in-code.outputs.up_to_date == 'false'
         )
@@ -529,6 +529,8 @@ jobs:
         run: |
           echo target_branch: ${{ inputs.target_branch }}
           echo branch_name:   ${{ needs.create-temp-branch.outputs.branch_name }}
+          echo needs.audit-changelog.outputs.exists: ${{ needs.audit-changelog.outputs.exists }}
+          echo needs.audit-version-in-code.outputs.up_to_date: ${{ needs.audit-version-in-code.outputs.up_to_date }}
 
       - name: "Checkout Repo ${{ github.repository }}"
         uses: actions/checkout@v3
