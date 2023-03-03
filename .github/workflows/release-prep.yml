@@ -291,6 +291,7 @@ jobs:
       - name: "Install Spark Dependencies"
         if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
         run: |
+          sudo apt-get update
           sudo apt-get install libsasl2-dev
 
       - name: "Add Homebrew To PATH"
@@ -427,6 +428,7 @@ jobs:
       - name: "Install Spark Dependencies"
         if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
         run: |
+          sudo apt-get update
           sudo apt-get install libsasl2-dev
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
@@ -490,6 +492,7 @@ jobs:
       - name: "Install Spark Dependencies"
         if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
         run: |
+          sudo apt-get update
           sudo apt-get install libsasl2-dev
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
