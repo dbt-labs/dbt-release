@@ -250,7 +250,7 @@ jobs:
 
   create-temp-branch:
     runs-on: ubuntu-latest
-    needs: [audit-changelog, audit-version-in-code]
+    needs: [audit-changelog, audit-version-in-code, spark-safety-check]
     if: needs.audit-changelog.outputs.exists == 'false' || needs.audit-version-in-code.outputs.up_to_date == 'false'
 
     outputs:
