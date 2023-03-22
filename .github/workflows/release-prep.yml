@@ -164,12 +164,15 @@ jobs:
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "Spark safety check"
-        if: steps.set_existence.outputs.exists != 'true'
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
         run: |
-          title="Spark version-bump.yml check"
-          message="dbt-spark needs version-bump.yml run before running the release.  The changelog is not up to date."
-          echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
-          exit 1
+          if [[ ${{ steps.set_existence.outputs.exists }} != true ]]
+          then
+            title="Spark version-bump.yml check"
+            message="dbt-spark needs version-bump.yml run before running the release.  The changelog is not up to date."
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+            exit 1
+          fi
 
       - name: "[DEBUG] Print Outputs"
         run: |
@@ -213,12 +216,15 @@ jobs:
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "Spark safety check"
-        if: ${{ steps.version-check.outputs.up_to_date != 'true' && contains(github.repository, 'dbt-labs/dbt-spark') }}
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
         run: |
-          title="Spark version-bump.yml check"
-          message="dbt-spark needs version-bump.yml run before running the release.  The version bump is not up to date."
-          echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
-          exit 1
+          if [[ ${{ steps.version-check.outputs.up_to_date }} != true ]]
+          then
+            title="Spark version-bump.yml check"
+            message="dbt-spark needs version-bump.yml run before running the release.  The version bump is not up to date."
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+            exit 1
+          fi
 
       - name: "[DEBUG] Print Outputs"
         run: |
