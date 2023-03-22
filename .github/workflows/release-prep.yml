@@ -163,6 +163,17 @@ jobs:
           fi
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
+      - name: "Spark safety check"
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
+        run: |
+          if [[ ${{ steps.set_existence.outputs.exists }} != true ]]
+          then
+            title="Spark version-bump.yml check"
+            message="dbt-spark needs version-bump.yml run before running the release.  The changelog is not up to date."
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+            exit 1
+          fi
+
       - name: "[DEBUG] Print Outputs"
         run: |
           echo changelog_path: ${{ steps.set_path.outputs.changelog_path }}
@@ -204,23 +215,20 @@ jobs:
           fi
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
+      - name: "Spark safety check"
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
+        run: |
+          if [[ ${{ steps.version-check.outputs.up_to_date }} != true ]]
+          then
+            title="Spark version-bump.yml check"
+            message="dbt-spark needs version-bump.yml run before running the release.  The version bump is not up to date."
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+            exit 1
+          fi
+
       - name: "[DEBUG] Print Outputs"
         run: |
           echo up_to_date: ${{ steps.version-check.outputs.up_to_date }}
-
-  spark-safety-check:
-    runs-on: ubuntu-latest
-    needs: [audit-changelog, audit-version-in-code]
-    if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
-
-    steps:
-      - name: "Check version-bump has already run"
-        if: needs.audit-changelog.outputs.exists != 'true' || needs.audit-version-in-code.outputs.up_to_date != 'true'
-        run: |
-          title="Spark version-bump.yml check"
-          message="dbt-spark needs version-bump.yml run before running the release.  The changelog and/or version bump is not up to date."
-          echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
-          exit 1
 
   skip-generate-changelog:
     runs-on: ubuntu-latest
@@ -250,7 +258,7 @@ jobs:
 
   create-temp-branch:
     runs-on: ubuntu-latest
-    needs: [audit-changelog, audit-version-in-code, spark-safety-check]
+    needs: [audit-changelog, audit-version-in-code]
     if: needs.audit-changelog.outputs.exists == 'false' || needs.audit-version-in-code.outputs.up_to_date == 'false'
 
     outputs:
