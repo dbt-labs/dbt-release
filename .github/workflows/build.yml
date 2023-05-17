@@ -204,7 +204,7 @@ jobs:
 
     steps:
       - name: "Configure Aws Credentials"
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v2-node16
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -219,7 +219,7 @@ jobs:
 
       - name: "Check Artifact Integrity"
         id: artifact_integrity
-        uses: andstor/file-existence-action@v2.0.0
+        uses: andstor/file-existence-action@v2
         with:
           files: "${{ inputs.changelog_path }}, dist/*.tar.gz, dist/*.whl"
 
@@ -404,7 +404,7 @@ jobs:
         run: ls -R
 
       - name: "Configure Aws Credentials"
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v2-node16
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
