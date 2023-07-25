@@ -196,19 +196,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check-release-exists, audit-release-different-commit]
     outputs:
-      latest: ${{ steps.latest_check.outputs.latest }}
+      latest: ${{ steps.mark_latest.outputs.latest }}
       prerelease: ${{ steps.release_type.outputs.prerelease }}
       draft: ${{ steps.draft.outputs.draft }}
       
-    if: needs.check-release-exists.outputs.draft_exists == 'false'
     steps:
       - name: "Get current latest release"
-        # not specifying tag means it will return the release marked as latest
+        # not specifying tag means it will return the release currently marked as latest
         id: latest_check
         run: |
           output=$(gh release view --json tagName)
           latest_tag=$(jq -r '.tagName' <<< "$output")
-
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
