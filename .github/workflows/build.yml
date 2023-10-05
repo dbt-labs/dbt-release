@@ -156,7 +156,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ inputs.sha }}
 
@@ -270,7 +270,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           ref: ${{ inputs.sha }}
@@ -305,7 +305,7 @@ jobs:
 
     steps:
       - name: "Checkout Commit - ${{ inputs.sha }}"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           ref: ${{ inputs.sha }}
