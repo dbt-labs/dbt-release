@@ -1,49 +1,22 @@
-# GitHub Workflows for releasing dbt packages
+## Understanding dbt-release
 
-A set of GitHub [Reusable Workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows) for automating releasing `dbt-core` and database adapter plugins.
+A set of GitHub [Reusable Workflows](https://docs.github.com/en/dbt-release/using-workflows/reusing-workflows) for automating releasing `dbt-core` and database adapter plugins.
 
-## Workflows
+## Getting started
 
-- [Version Bump and Changelog Generation](.github/workflows/release-prep.yml)
-- [Build](.github/workflows/build.yml)
-- [GitHub Release](.github/workflows/github-release.yml)
-- [PyPI Release](.github/workflows/pypi-release.yml)
-- [Post Slack Notification](.github/workflows/slack-post-notification.yml)
+- [Reusing Workflows](https://docs.github.com/en/dbt-release/using-workflows/reusing-workflows)
+- Read the [introduction](https://docs.getdbt.com/docs/introduction/) and [viewpoint](https://docs.getdbt.com/docs/about/viewpoint/) at dbt Labs
 
-## References to workflows
+## Join the dbt Community
 
-To use workflows inside other workflows, you can use the `main` branch or specific commit SHA as a workflow tag.
+- Be part of the conversation in the [dbt Community Slack](http://community.getdbt.com/)
+- Read more on the [dbt Community Discourse](https://discourse.getdbt.com)
 
-**Snippet**:
+## Reporting bugs and contributing code
 
-```yaml
-  build-test-package:
-    name: Build, Test, Package
-    if: ${{ !failure() && !cancelled() }}
-    needs: [bump-version-generate-changelog]
+- Want to report a bug or request a feature? Let us know and open [an issue](https://github.com/dbt-labs/dbt-release/issues/new)
+- Want to help us build `dbt-release`? Check out the [Contributing Guide](https://github.com/dbt-labs/dbt-release/blob/HEAD/CONTRIBUTING.md)
 
-    uses: dbt-labs/dbt-release/.github/workflows/build.yml@main
+## Code of Conduct
 
-    with:
-      sha: ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
-      version_number: ${{ inputs.version_number }}
-      changelog_path: ${{ needs.bump-version-generate-changelog.outputs.changelog_path }}
-      build_script_path: ${{ inputs.build_script_path }}
-      s3_bucket_name: ${{ inputs.s3_bucket_name }}
-      package_test_command: ${{ inputs.package_test_command }}
-      test_run: ${{ inputs.test_run }}
-      nightly_release: ${{ inputs.nightly_release }}
-
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-```
-
-**Example**: <https://github.com/dbt-labs/dbt-core/blob/main/.github/workflows/release.yml>
-
-## Development
-
-- Install pre-commit ([docs](https://pre-commit.com/#installation));
-- Use the following [guidelines](https://github.com/dbt-labs/dbt-core/blob/main/.github/_README.md) during development;
-- Each workflow should be self-documented;
-- It is recommended to use the [act](https://github.com/nektos/act) for testing locally where possible.
+Everyone interacting in the dbt project's codebases, issue trackers, chat rooms, and mailing lists is expected to follow the [dbt Code of Conduct](https://community.getdbt.com/code-of-conduct).
