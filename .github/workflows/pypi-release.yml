@@ -81,13 +81,13 @@ jobs:
     steps:
       - name: "Audit Version And Parse Into Parts"
         id: semver
-        uses: dbt-labs/actions/parse-semver@v1.1.0
+        uses: dbt-labs/actions/parse-semver@v1.1.1
         with:
           version: ${{ inputs.version_number }}
 
       - name: "Fetch PyPI Info For ${{ steps.semver.outputs.version }} Package"
         id: pypi_info
-        uses: dbt-labs/actions/py-package-info@v1.1.0
+        uses: dbt-labs/actions/py-package-info@v1.1.1
         with:
           package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ steps.semver.outputs.version }}
@@ -178,13 +178,13 @@ jobs:
     steps:
       - name: "Audit Version And Parse Into Parts"
         id: semver
-        uses: dbt-labs/actions/parse-semver@v1.1.0
+        uses: dbt-labs/actions/parse-semver@v1.1.1
         with:
           version: ${{ inputs.version_number }}
 
       - name: "Fetch PyPI Info For ${{ needs.sanitize-package-name.outputs.name }} Package"
         id: pypi_info
-        uses: dbt-labs/actions/py-package-info@v1.1.0
+        uses: dbt-labs/actions/py-package-info@v1.1.1
         with:
           package: ${{ needs.sanitize-package-name.outputs.name }}
           version: ${{ steps.semver.outputs.version }}
