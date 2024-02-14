@@ -182,7 +182,7 @@ jobs:
     needs: [check-release-exists, audit-release-different-commit]
     if: >-
       needs.check-release-exists.outputs.draft_exists == 'true' &&
-      inputs.test_run  == false
+      inputs.test_run == false
 
     steps:
       - name: "Publish Draft Release - ${{ needs.check-release-exists.outputs.tag }}"
@@ -192,25 +192,52 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.check-release-exists.outputs.tag }}
 
-  create-github-release:
+  set-release-flags:
     runs-on: ubuntu-latest
     needs: [check-release-exists, audit-release-different-commit]
-    if: needs.check-release-exists.outputs.draft_exists == 'false'
-
+    outputs:
+      latest: ${{ steps.mark_latest.outputs.latest }}
+      prerelease: ${{ steps.release_type.outputs.prerelease }}
+      draft: ${{ steps.draft.outputs.draft }}
+      
     steps:
-      - name: "Download Artifact ${{ inputs.version_number }}"
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ inputs.version_number }}
-          path: .
+      - name: "Get current latest release"
+        # not specifying tag means it will return the release currently marked as latest
+        id: latest_check
+        run: |
+          output=$(gh release view --json tagName)
+          latest_tag=$(jq -r '.tagName' <<< "$output")
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "[DEBUG] Display Structure Of All Downloaded Files"
-        run: ls -R
+      - name: "Parse Latest Version Into Parts"
+        id: semver-latest
+        uses: dbt-labs/actions/parse-semver@main
+        with:
+          version: ${{ steps.latest_check.outputs.latest_tag }}
+
+      - name: "Parse Input Version Into Parts"
+        id: semver-pending-release
+        uses: dbt-labs/actions/parse-semver@main
+        with:
+          version: ${{ inputs.version_number }}
+      
+      - name: "Determine if new release should be marked as latest"
+        id: mark_latest
+        run: |
+          if [[ ${{ steps.semver-pending-release.outputs.is-pre-release }} == 1 || ${{ inputs.test_run }} ]]
+          then
+            echo "This is a prerelease or test run.  Cannot be marked as latest."
+          elif [[ ${{ steps.semver-latest.outputs.minor }} <= ${{ steps.semver-pending-release.outputs.minor }} ]]
+          then
+            echo "Marking as latest.  Current latest is ${{ steps.latest_check.outputs.latest_tag }}"
+            echo "latest=--latest" >> $GITHUB_OUTPUT
+          fi
 
       - name: "Set Release Type"
         id: release_type
         run: |
-          if ${{ contains(inputs.version_number, 'rc') ||  contains(inputs.version_number, 'b') }}
+          if [[ ${{ steps.semver-pending-release.outputs.is-pre-release }} == 1 ]]
           then
             echo Release will be set as pre-release
             echo "prerelease=--prerelease" >> $GITHUB_OUTPUT
@@ -229,20 +256,36 @@ jobs:
             echo This is not a draft release
           fi
 
+  create-github-release:
+    runs-on: ubuntu-latest
+    needs: [check-release-exists, set-release-flags]
+    if: needs.check-release-exists.outputs.draft_exists == 'false'
+
+    steps:
+      - name: "Download Artifact ${{ inputs.version_number }}"
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.version_number }}
+          path: .
+
+      - name: "[DEBUG] Display Structure Of All Downloaded Files"
+        run: ls -R
+
       - name: "GitHub Release Workflow Annotation"
         run: |
           title="Release ${{ needs.check-release-exists.outputs.tag }}"
-          message="Configuration: ${{ steps.release_type.outputs.prerelease }} ${{ steps.draft.outputs.draft }}"
+          message="Configuration: ${{ needs.set-release-flags.outputs.prerelease }} ${{ needs.set-release-flags.outputs.draft }} ${{ needs.set-release-flags.outputs.latest }}"
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "Create New GitHub Release - ${{ needs.check-release-exists.outputs.tag }}"
         run: |
-          gh release create $TAG ./dist/* --title "$TITLE" --notes-file $RELEASE_NOTES --target $COMMIT $PRERELEASE $DRAFT --repo ${{ env.REPO_LINK }}
+          gh release create $TAG ./dist/* --title "$TITLE" --notes-file $RELEASE_NOTES --target $COMMIT $PRERELEASE $DRAFT $LATEST legacy --repo ${{ env.REPO_LINK }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.check-release-exists.outputs.tag }}
           TITLE: ${{ github.event.repository.name }} ${{ needs.check-release-exists.outputs.tag }}
           RELEASE_NOTES: ${{ inputs.changelog_path }}
           COMMIT: ${{ inputs.sha }}
-          PRERELEASE: ${{ steps.release_type.outputs.prerelease }}
-          DRAFT: ${{ steps.draft.outputs.draft }}
+          PRERELEASE: ${{ needs.set-release-flags.outputs.prerelease }}
+          DRAFT: ${{ needs.set-release-flags.outputs.draft }}
+          LATEST: ${{ needs.set-release-flags.outputs.latest }}
