@@ -227,7 +227,7 @@ jobs:
       # downloading from S3
       - name: "Upload Artifact From S3 To GitHub"
         if: ${{ steps.artifact_integrity.outputs.files_exists == 'true' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.version_number }}
           path: |
@@ -336,7 +336,7 @@ jobs:
           check-wheel-contents dist/*.whl --ignore W007,W008
 
       - name: "Upload Build Artifact - ${{ inputs.version_number }}"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.version_number }}
           path: |
