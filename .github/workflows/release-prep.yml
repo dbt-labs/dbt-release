@@ -486,7 +486,7 @@ jobs:
         run: source ./${{ inputs.env_setup_script_path }}
 
       - name: "Setup Environment Variables - Secrets Context"
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         id: check-env
         with:
           result-encoding: string
