@@ -395,7 +395,12 @@ jobs:
         # note: bumpversion is no longer supported, it actually points to bump2version now
         run: |
           source env/bin/activate
-          python -m pip install -r dev-requirements.txt
+          if [ -f "editable-requirements.txt" ]
+          then
+            python -m pip install -r dev-requirements.txt -r editable-requirements.txt
+          else
+            python -m pip install -r dev-requirements.txt
+          fi
           env/bin/bumpversion --allow-dirty --new-version ${{ inputs.version_number }} major
           git status
 
