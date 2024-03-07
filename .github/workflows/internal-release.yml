@@ -1,0 +1,79 @@
+# **what?**
+# Create a new release and place artifacts in the `/dist` directory in the internal artifacts store.
+#
+# Inputs:
+#  sha: TODO: revert
+#  version_number: The release version number (i.e. 1.0.0b1, 1.2.3rc2, 1.0.0)
+#
+# **why?**
+# We want to pre-release patch releases for internal testing and analysis
+#
+# **when?**
+# Call after a successful internal release build.  Build artifacts should live in a dist/ directory.
+#
+# This workflow expects the artifacts to be built and present in the artifact store of the workflow.
+#
+# Validation Checks
+#
+# TODO: need to figure out how to pull info from artifact and compare against version sha
+
+name: Internal Achive Release
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        description: The commit to attach to this release
+        required: true
+        type: string
+      version_number:
+        description: The release version number (i.e. 1.0.0b1)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  NOTIFICATION_PREFIX: "[Internal Archive Release]"
+
+jobs:
+  log-inputs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "[DEBUG] Print Variables"
+        run: |
+          echo The last commit sha in the release: ${{ inputs.sha }}
+          echo The release version number:         ${{ inputs.version_number }}
+          echo Notification prefix:                ${{ env.NOTIFICATION_PREFIX }}
+
+  create-internal-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Create New Internal Release - ${{ inputs.version_number }}"
+        run: |
+          pip install --upgrade pip
+          pip install twine
+          # TODO: get more clever with renaming the release according to the internal number scheme
+          # Grab existing latest release name
+          # Grab the build number
+          # Upticking by one for current sha
+          # Rename wheel and tar.gz
+          # Name current release using that upticked version <major>.<minor>.<release>b<beta number>+<build no.>
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set output text --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          twine upload --repository codeartifact dist/*
+          echo "-- Success -- released ${{ inputs.version_number }}"
+
+        secrets:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DOMAIN: ${{ secrets.AWS_DOMAIN }}
+          AWS_DOMAIN_OWNER: ${{ secrets.AWS_DOMAIN_OWNER }}
+          AWS_PROFILE_NAME: ${{ secrets.AWS_PROFILE_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_REPOSITORY: ${{ secrets.AWS_REPOSITORY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
