@@ -68,12 +68,3 @@ jobs:
           aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
           twine upload --repository codeartifact dist/*
           echo "-- Success -- released ${{ inputs.version_number }}"
-
-        secrets:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_DOMAIN: ${{ secrets.AWS_DOMAIN }}
-          AWS_DOMAIN_OWNER: ${{ secrets.AWS_DOMAIN_OWNER }}
-          AWS_PROFILE_NAME: ${{ secrets.AWS_PROFILE_NAME }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_REPOSITORY: ${{ secrets.AWS_REPOSITORY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
