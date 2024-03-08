@@ -47,24 +47,24 @@ jobs:
           echo The release version number:         ${{ inputs.version_number }}
           echo Notification prefix:                ${{ env.NOTIFICATION_PREFIX }}
 
-  create-internal-release:
-    runs-on: ubuntu-latest
+  # create-internal-release:
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: "Create New Internal Release - ${{ inputs.version_number }}"
-        run: |
-          pip install --upgrade pip
-          pip install twine
-          # TODO: get more clever with renaming the release according to the internal number scheme
-          # Grab existing latest release name
-          # Grab the build number
-          # Upticking by one for current sha
-          # Rename wheel and tar.gz
-          # Name current release using that upticked version <major>.<minor>.<release>b<beta number>+<build no.>
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set output text --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          twine upload --repository codeartifact dist/*
-          echo "-- Success -- released ${{ inputs.version_number }}"
+  #   steps:
+  #     - name: "Create New Internal Release - ${{ inputs.version_number }}"
+  #       run: |
+  #         pip install --upgrade pip
+  #         pip install twine
+  #         # TODO: get more clever with renaming the release according to the internal number scheme
+  #         # Grab existing latest release name
+  #         # Grab the build number
+  #         # Upticking by one for current sha
+  #         # Rename wheel and tar.gz
+  #         # Name current release using that upticked version <major>.<minor>.<release>b<beta number>+<build no.>
+  #         aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+  #         aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+  #         aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+  #         aws configure set output text --profile ${{ secrets.AWS_PROFILE_NAME }}
+  #         aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+  #         twine upload --repository codeartifact dist/*
+  #         echo "-- Success -- released ${{ inputs.version_number }}"
