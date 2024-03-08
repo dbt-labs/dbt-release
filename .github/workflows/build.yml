@@ -1,4 +1,5 @@
-# **what?**
+#
+#  **what?**
 # Build release artifacts and store them to S3 bucket if they do not already exist.
 #
 # Expected build artifact layout:
