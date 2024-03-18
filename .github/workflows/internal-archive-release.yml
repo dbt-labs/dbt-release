@@ -55,6 +55,22 @@ jobs:
         run: |
           echo "main_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
+      - name: "Validate patch version input against patch version of sha"
+        id: validate_version
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set output text --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+
+          version_in_file="$(grep 'version =' "dbt/adapters/${{ inputs.dbms_name }}/__version__.py" | cut -d '"' -f2)"
+
+          if [[ "${{ inputs.version_number }}" != "${version_in_file}" ]]; then
+            echo "Error: patch version input to this job and version of sha are not equal."
+            exit 1
+          fi
+
   run-tests:
     name: Run tests on sha before releasing
     runs-on: ubuntu-latest
