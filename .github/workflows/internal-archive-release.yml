@@ -90,16 +90,17 @@ jobs:
       - name: "Alter version in metadata of python package"
         run: |
           version_file="$(echo "dbt/adapters/${{ inputs.dbms_name }}/__version__.py")"
-          current_version="$(grep 'version =' "${version_file}" | cut -d '"' -f2)"
+
+          current_latest_version="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | sort -V |  tail -n 1 )"
 
           echo ">>> Altering ${version_file}"
-          if [[ $current_version =~ (.*build)([0-9]+)$ ]]; then
+          if [[ ${current_latest_version} =~ (.*build)([0-9]+)$ ]]; then
               base="${BASH_REMATCH[1]}"
               number="${BASH_REMATCH[2]}"
               new_number=$((number + 1))
               tee <<< "version = \"${base}${new_number}\"" "${version_file}"
           else
-              tee <<< "version = \"${current_version}+build1\"" "${version_file}"
+              tee <<< "version = \"${current_latest_version}+build1\"" "${version_file}"
           fi
 
       - name: "Build Distributions - scripts/build-dist.sh"
@@ -123,16 +124,6 @@ jobs:
           aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
           aws configure set output text --profile ${{ secrets.AWS_PROFILE_NAME }}
           aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-
-      - name: "Set the version of the artifact with build number"
-        run: |
-          version_file="$(echo "dbt/adapters/redshift/__version__.py")"
-          new_version="$(grep 'version =' "${version_file}" | cut -d '"' -f2)"
-          echo "Altering generated artifacts to internal build convention using tag [${new_version}]"
-
-          # leave off " to glob
-          # mv dist/*.tar.gz "dist/dbt-redshift-${new_version}.tar.gz"
-          # mv dist/*.whl "dist/dbt_redshift-${new_version}-py3-none-any.whl"
 
       - name: "Upload Build Artifact - ${{ inputs.version_number }}"
         run: |
