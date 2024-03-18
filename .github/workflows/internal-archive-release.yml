@@ -3,6 +3,10 @@ name: Internal Archive Release
 on:
   workflow_call:
     inputs:
+      sha:
+        description: "The sha to use (leave empty to use latest on main)"
+        type: string
+        required: false
       dbms_name:
         description: "The warehouse name for the adapter."
         type: string
@@ -35,39 +39,26 @@ jobs:
   job-setup:
     name: Job Setup
     runs-on: ubuntu-latest
-    outputs:
-      main_sha: ${{ steps.set_sha.outputs.main_sha }}
     steps:
       - name: "[DEBUG] Print Variables"
         run: |
           echo Warehouse name:                     ${{ inputs.dbms_name }}
           echo The release version number:         ${{ inputs.version_number }}
+          echo The release sha:                    ${{ inputs.sha }}
           echo Package test command:               ${{ inputs.package_test_command }}
 
       - name: "Checkout main branch"
         uses: actions/checkout@v4
         with:
-          ref: main
-
-      # Will be the last sha on the main branch
-      - name: "Capture sha"
-        id: set_sha
-        run: |
-          echo "main_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          ref: ${{ inputs.sha || 'main' }}
 
       - name: "Validate patch version input against patch version of sha"
         id: validate_version
         run: |
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set output text --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-
           version_in_file="$(grep 'version =' "dbt/adapters/${{ inputs.dbms_name }}/__version__.py" | cut -d '"' -f2)"
 
           if [[ "${{ inputs.version_number }}" != "${version_in_file}" ]]; then
-            echo "Error: patch version input to this job and version of sha are not equal."
+            echo "Error: patch version input to this job ${{ inputs.version_number }} and version of sha ${version_in_file} are not equal."
             exit 1
           fi
 
@@ -86,11 +77,10 @@ jobs:
     needs: [run-tests]
 
     steps:
-      - name: "Checkout Commit - ${{ needs.job-setup.outputs.main_sha }}"
+      - name: "Checkout main branch"
         uses: actions/checkout@v4
         with:
-          persist-credentials: false
-          ref: ${{ needs.job-setup.outputs.main_sha }}
+          ref: ${{ inputs.sha || 'main' }}
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
@@ -113,12 +103,20 @@ jobs:
 
       - name: "Alter version in metadata of python package"
         run: |
-          version_file="$(echo "dbt/adapters/${{ inputs.dbms_name }}/__version__.py")"
+          version_file="dbt/adapters/${{ inputs.dbms_name }}/__version__.py"
+          version_in_file=$(grep 'version =' "${version_file}" | cut -d '"' -f2)
 
-          current_latest_version="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | sort -V |  tail -n 1 )"
+          versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
+
+          current_latest_version="$(echo "${versions_on_aws}" | sort -V | tail -n 1 )"
+
+          echo "[Debug] version_in_file: ${version_in_file}"
+          echo "[Debug] current_latest_version: ${current_latest_version}"
 
           echo ">>> Altering ${version_file}"
-          if [[ ${current_latest_version} =~ (.*build)([0-9]+)$ ]]; then
+          if [[ -z "${current_latest_version}" ]]; then
+              echo "Skipping as no version on aws yet!"
+          elif [[ ${current_latest_version} =~ (.*build)([0-9]+)$ ]]; then
               base="${BASH_REMATCH[1]}"
               number="${BASH_REMATCH[2]}"
               new_number=$((number + 1))
