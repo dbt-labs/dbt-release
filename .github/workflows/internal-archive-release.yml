@@ -99,7 +99,7 @@ jobs:
               new_number=$((number + 1))
               tee <<< "version = \"${base}${new_number}\"" "${version_file}"
           else
-              tee <<< "version = \"${current_version}.build1\"" "${version_file}"
+              tee <<< "version = \"${current_version}+build1\"" "${version_file}"
           fi
 
       - name: "Build Distributions - scripts/build-dist.sh"
