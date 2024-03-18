@@ -131,8 +131,8 @@ jobs:
           echo "Altering generated artifacts to internal build convention using tag [${new_version}]"
 
           # leave off " to glob
-          mv dist/*.tar.gz "dist/dbt-redshift-${new_version}.tar.gz"
-          mv dist/*.whl "dist/dbt_redshift-${new_version}-py3-none-any.whl"
+          # mv dist/*.tar.gz "dist/dbt-redshift-${new_version}.tar.gz"
+          # mv dist/*.whl "dist/dbt_redshift-${new_version}-py3-none-any.whl"
 
       - name: "Upload Build Artifact - ${{ inputs.version_number }}"
         run: |
