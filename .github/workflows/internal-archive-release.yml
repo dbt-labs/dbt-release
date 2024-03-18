@@ -87,6 +87,14 @@ jobs:
           python -m pip install --upgrade setuptools wheel twine check-wheel-contents
           python -m pip --version
 
+      - name: "Configure AWS profile for upload"
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set output text --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+
       - name: "Alter version in metadata of python package"
         run: |
           version_file="$(echo "dbt/adapters/${{ inputs.dbms_name }}/__version__.py")"
@@ -116,14 +124,6 @@ jobs:
       - name: "[DEBUG] Check Wheel Contents"
         run: |
           check-wheel-contents dist/*.whl --ignore W007,W008
-
-      - name: "Configure AWS profile for upload"
-        run: |
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set output text --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
 
       - name: "Upload Build Artifact - ${{ inputs.version_number }}"
         run: |
