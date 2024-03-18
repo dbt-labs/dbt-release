@@ -29,7 +29,6 @@ on:
       package_test_command:
         description: "Package test command"
         type: string
-        default: "python -c \"import dbt.adapters.redshift\""
         required: true
 
 # will cancel previous workflows triggered by the same event and for the same ref for PRs or same SHA otherwise
@@ -55,7 +54,7 @@ jobs:
       - name: "[DEBUG] Print Variables"
         run: |
           echo The release version number:         ${{ inputs.version_number }}
-          echo Package test command:               ${{ inputs.package_test_command }}
+          echo Package test command:               ${{ inputs.package_test_command || '' }}
 
       - name: "Checkout main branch"
         uses: actions/checkout@v4
