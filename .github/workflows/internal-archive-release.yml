@@ -1,0 +1,238 @@
+name: "Internal Archive Release"
+
+on:
+  workflow_call:
+    inputs:
+      dbms_name:
+        description: "The warehouse name for the adapter."
+        type: string
+        required: true
+      version_number:
+        description: "The release version number (i.e. 1.0.0b1)"
+        type: string
+        required: true
+      package_test_command:
+        description: "Package test command"
+        type: string
+        required: true
+      sha:
+        description: "The sha to use (leave empty to use latest on main)"
+        type: string
+        required: false
+
+permissions: read-all
+
+# will cancel previous workflows triggered by the same event and for the same ref for PRs or same SHA otherwise
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.ref || github.sha }}-${{ inputs.deploy-to }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHON_TARGET_VERSION: 3.11
+  NOTIFICATION_PREFIX: "[Internal Archive Release]"
+
+jobs:
+  job-setup:
+    name: Job Setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: "[DEBUG] Print Variables"
+        run: |
+          echo Warehouse name:                     ${{ inputs.dbms_name }}
+          echo The release version number:         ${{ inputs.version_number }}
+          echo The release sha:                    ${{ inputs.sha }}
+          echo Package test command:               ${{ inputs.package_test_command }}
+
+      - name: "Checkout provided sha, default to branch main"
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha || 'main' }}
+
+      - name: "Validate patch version input against patch version of sha"
+        id: validate_version
+        run: |
+          version_in_file="$(grep 'version =' "dbt/adapters/${{ inputs.dbms_name }}/__version__.py" | cut -d '"' -f2)"
+
+          if [[ "${{ inputs.version_number }}" != "${version_in_file}" ]]; then
+            message="Error: patch version input to this job ${{ inputs.version_number }} and version of sha ${version_in_file} are not equal. Exiting..."
+            echo "::error $title::$message"
+            exit 1
+          fi
+
+  run-unit-tests:
+    runs-on: ubuntu-latest
+    needs: [job-setup]
+
+    env:
+      TOXENV: unit
+
+    steps:
+      - name: "Checkout provided sha, default to branch main"
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha || 'main' }}
+
+      - name: "Install Spark Dependencies"
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install libsasl2-dev
+
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
+
+      - name: "Install Python Dependencies"
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip install tox
+          python -m pip --version
+          python -m tox --version
+
+      - name: "Run Tox"
+        run: tox
+
+  run-integration-tests:
+    runs-on: ubuntu-latest
+    needs: [job-setup]
+
+    env:
+      TOXENV: integration
+
+    steps:
+      - name: "Checkout provided sha, default to branch main"
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha || 'main' }}
+
+      - name: "Setup Environment Variables - ./scripts/env-setup.sh"
+        run: source ./scripts/env-setup.sh
+
+      - name: "Setup Environment Variables - Secrets Context"
+        uses: actions/github-script@v7
+        id: check-env
+        with:
+          result-encoding: string
+          script: |
+            try {
+                const { SECRETS_CONTEXT, INTEGRATION_TESTS_SECRETS_PREFIX } = process.env
+                const secrets = JSON.parse(SECRETS_CONTEXT)
+
+                if (INTEGRATION_TESTS_SECRETS_PREFIX) {
+                  for (const [key, value] of Object.entries(secrets)) {
+                      if (key.startsWith(INTEGRATION_TESTS_SECRETS_PREFIX)) {
+                          core.exportVariable(key, value)
+                      }
+                  }
+                } else {
+                  core.info("The INTEGRATION_TESTS_SECRETS_PREFIX env variable is empty or not defined, skipping the secrets setup.")
+                }
+            } catch (err) {
+                core.error("Error while reading or parsing the JSON")
+                core.setFailed(err)
+            }
+        env:
+          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+
+      - name: "Install Spark Dependencies"
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install libsasl2-dev
+
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
+
+      - name: "Install python tools"
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip --version
+          python -m pip install tox
+          tox --version
+
+      - name: "Run Tests"
+        run: tox
+
+  create-internal-release:
+    name: Create release for internal archive
+    runs-on: ubuntu-latest
+    needs: [run-unit-tests, run-integration-tests]
+
+    steps:
+      - name: "Checkout provided sha, default to branch main"
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha || 'main' }}
+
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
+
+      - name: "Install Python Dependencies"
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip install --upgrade setuptools wheel twine check-wheel-contents
+          python -m pip --version
+
+      - name: "Configure AWS profile for upload"
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set output text --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+
+      - name: "Alter version in metadata of python package"
+        run: |
+          version_file="dbt/adapters/${{ inputs.dbms_name }}/__version__.py"
+          version_in_file=$(grep 'version =' "${version_file}" | cut -d '"' -f2)
+
+          versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
+
+          current_latest_version="$(echo "${versions_on_aws}" | sort -V | tail -n 1 )"
+
+          echo "[Debug] version_in_file: ${version_in_file}"
+          echo "[Debug] current_latest_version: ${current_latest_version}"
+
+          echo ">>> Altering ${version_file}"
+          if [[ -z "${current_latest_version}" ]]; then
+              echo "Skipping as no version on aws yet!"
+          elif [[ ${current_latest_version} =~ (.*build)([0-9]+)$ ]]; then
+              base="${BASH_REMATCH[1]}"
+              number="${BASH_REMATCH[2]}"
+              new_number=$((number + 1))
+              tee <<< "version = \"${base}${new_number}\"" "${version_file}"
+          else
+              tee <<< "version = \"${current_latest_version}+build1\"" "${version_file}"
+          fi
+
+      - name: "Build Distributions - scripts/build-dist.sh"
+        run: scripts/build-dist.sh
+
+      - name: "[DEBUG] Show Distributions"
+        run: ls -lh dist/
+
+      - name: "Check Distribution Descriptions"
+        run: |
+          twine check dist/*
+
+      - name: "[DEBUG] Check Wheel Contents"
+        run: |
+          check-wheel-contents dist/*.whl --ignore W007,W008
+
+      - name: "Upload Build Artifact - ${{ inputs.version_number }}"
+        run: |
+          twine upload --repository codeartifact dist/*
+
+          version_file="$(echo "dbt/adapters/${{ inputs.dbms_name }}/__version__.py")"
+          version="$(grep 'version =' "${version_file}" | cut -d '"' -f2)"
+          message="-- Success -- released ${version}"
+          echo "::notice $title::$message"
