@@ -90,6 +90,7 @@ jobs:
           python -m tox --version
 
       - name: "Run Tox"
+        if: contains(fromJSON('["redshift"]'), inputs.dbms_name)
         run: tox
 
   run-integration-tests:
@@ -146,9 +147,9 @@ jobs:
           python -m pip install tox
           tox --version
 
-      # - name: "Run Tests using tox"
-      #   if: contains(fromJSON('["redshift"]'), inputs.dbms_name)
-      #   run: tox
+      - name: "Run Tests using tox"
+        if: contains(fromJSON('["redshift"]'), inputs.dbms_name)
+        run: tox
 
   create-internal-release:
     name: Create release for internal archive
