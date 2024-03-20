@@ -34,6 +34,7 @@ defaults:
 env:
   PYTHON_TARGET_VERSION: 3.11
   NOTIFICATION_PREFIX: "[Internal Archive Release]"
+  TEMP_PROFILE_NAME: "temp_aws_profile"
 
 jobs:
   job-setup:
@@ -179,11 +180,11 @@ jobs:
 
       - name: "Configure AWS profile for upload"
         run: |
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set output text --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws configure set output text --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
 
       - name: "Alter version in metadata of python package"
         run: |
@@ -191,7 +192,7 @@ jobs:
           version_in_file=$(grep 'version =' "${version_file}" | cut -d '"' -f2)
 
           # check the latest build of adapter code in our archive
-          versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
+          versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
 
           current_latest_version="$(echo "${versions_on_aws}" | sort -V | tail -n 1 )"
 
