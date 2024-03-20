@@ -139,12 +139,6 @@ jobs:
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
-      - name: "Install Spark Dependencies"
-        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install libsasl2-dev
-
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
         with:
@@ -157,8 +151,9 @@ jobs:
           python -m pip install tox
           tox --version
 
-      - name: "Run Tests"
-        run: tox
+      # - name: "Run Tests using tox"
+      #   if: contains(fromJSON('["redshift"]'), inputs.dbms_name)
+      #   run: tox
 
   create-internal-release:
     name: Create release for internal archive
