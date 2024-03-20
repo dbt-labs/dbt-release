@@ -190,6 +190,7 @@ jobs:
           version_file="dbt/adapters/${{ inputs.dbms_name }}/__version__.py"
           version_in_file=$(grep 'version =' "${version_file}" | cut -d '"' -f2)
 
+          # check the latest build of adapter code in our archive
           versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
 
           current_latest_version="$(echo "${versions_on_aws}" | sort -V | tail -n 1 )"
@@ -198,9 +199,8 @@ jobs:
           echo "[Debug] current_latest_version: ${current_latest_version}"
 
           echo ">>> Altering ${version_file}"
-          if [[ -z "${current_latest_version}" ]]; then
-              echo "Skipping as no version on aws yet!"
-          elif [[ ${current_latest_version} =~ (.*build)([0-9]+)$ ]]; then
+          # Ensure a build+xxx where xxx is an integer is always present in versioning
+          if [[ ${current_latest_version} =~ (.*build)([0-9]+)$ ]]; then
               base="${BASH_REMATCH[1]}"
               number="${BASH_REMATCH[2]}"
               new_number=$((number + 1))
