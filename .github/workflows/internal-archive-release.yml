@@ -252,11 +252,15 @@ jobs:
               new_number=$((number + 1))
               v="${base}${new_number}"
               tee <<< "version = \"${v}\"" "${version_file}"
-              sed -i "s/^package_version = \".*\"/package_version = \"${v}\"/" "${setup_file}"
+              if [ -f "${setup_file}" ]; then
+                sed -i "s/^package_version = \".*\"/package_version = \"${v}\"/" "${setup_file}"
+              fi
           else
               v="${version_in_file}+build1"
               tee <<< "version = \"${v}\"" "${version_file}"
-              sed -i "s/^package_version = \".*\"/package_version = \"${v}\"/" "${setup_file}"
+              if [ -f "${setup_file}" ]; then
+                sed -i "s/^package_version = \".*\"/package_version = \"${v}\"/" "${setup_file}"
+              fi
           fi
 
       ################
