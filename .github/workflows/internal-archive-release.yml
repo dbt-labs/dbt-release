@@ -195,8 +195,13 @@ jobs:
     name: Create release for internal archive
     runs-on: ubuntu-latest
     needs: [run-unit-tests, run-integration-tests, run-integration-tests-hatch]
+    # Build artifact if
+    # 1. All succeed
+    # 2. Spark invoked (it runs tests via its in-repo workflow)
+    # 3. Integration tests passed at least via one job above
     if: |
       success() ||
+      inputs.dbms_name == 'spark' ||
       (needs.run-integration-tests.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
 
     steps:
@@ -262,7 +267,7 @@ jobs:
       # 1. Build with setup.py
       #
       - name: "Build Distributions - scripts/build-dist.sh"
-        if: contains(fromJSON( '["redshift", "snowflake", "bigquery"]' ), inputs.dbms_name)
+        if: contains(fromJSON( '["redshift", "snowflake", "bigquery", "spark"]' ), inputs.dbms_name)
         run: scripts/build-dist.sh
 
       #
