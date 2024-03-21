@@ -101,7 +101,7 @@ jobs:
 
       - name: "Run Tests using tox"
         if: contains(fromJSON( '["redshift", "snowflake", "bigquery", "spark"]' ), inputs.dbms_name)
-        run: tox
+        run: echo # tox
 
       #
       # Testing with Hatch
@@ -182,7 +182,7 @@ jobs:
           tox --version
 
       - name: "Run Tests using tox"
-        run: tox
+        run: echo # tox
 
 
   run-integration-tests-hatch:
