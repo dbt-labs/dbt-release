@@ -134,7 +134,10 @@ jobs:
           ref: ${{ inputs.sha || 'main' }}
 
       - name: "Setup Environment Variables - ./scripts/env-setup.sh"
-        run: [[ -f './scripts/env-setup.sh' ]] && source ./scripts/env-setup.sh
+        run: |
+          if [ -f './scripts/env-setup.sh' ]; then
+            source ./scripts/env-setup.sh
+          fi
 
       - name: "Setup Environment Variables - Secrets Context"
         uses: actions/github-script@v7
