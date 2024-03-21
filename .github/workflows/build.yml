@@ -219,7 +219,7 @@ jobs:
 
       - name: "Check Artifact Integrity"
         id: artifact_integrity
-        uses: andstor/file-existence-action@v2
+        uses: andstor/file-existence-action@v3
         with:
           files: "${{ inputs.changelog_path }}, dist/*.tar.gz, dist/*.whl"
 
