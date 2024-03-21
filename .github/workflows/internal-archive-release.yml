@@ -66,7 +66,6 @@ jobs:
 
   run-unit-tests:
     runs-on: ubuntu-latest
-    needs: [job-setup]
 
     env:
       TOXENV: unit
@@ -114,7 +113,6 @@ jobs:
   run-integration-tests:
     name: 'Integration Tests (Tox)'
     runs-on: ubuntu-latest
-    needs: [job-setup]
     if: contains(fromJSON('["redshift"]'), inputs.dbms_name)
 
     env:
@@ -174,10 +172,12 @@ jobs:
 
   run-integration-tests-hatch:
     name: 'Integration Tests (Hatch)'
-    needs: [job-setup]
     if: contains(fromJSON('["postgres"]'), inputs.dbms_name)
 
     uses: "dbt-labs/dbt-postgres/.github/workflows/integration-tests.yml@main"
+    with:
+      core_branch: "main"
+      dbt_adapters_branch: "main"
 
 
   ####################
@@ -187,7 +187,6 @@ jobs:
   create-internal-release:
     name: Create release for internal archive
     runs-on: ubuntu-latest
-    needs: [run-unit-tests, run-integration-tests, run-integration-tests-hatch]
 
     steps:
       - name: "Checkout provided sha, default to branch main"
