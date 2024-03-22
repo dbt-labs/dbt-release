@@ -72,6 +72,8 @@ jobs:
           else
             echo "is_hatch_adapter=false" >> $GITHUB_OUTPUT
           fi
+          env
+          echo $is_hatch_adapter
 
       - name: "Check if dbms_name is spark"
         id: "check_if_this_is_a_spark_build"
@@ -154,7 +156,10 @@ jobs:
 
       - name: "Run Tests using hatch"
         if: "${{ needs.env-var-setup.outputs.is_hatch_adapter }}"
-        run: hatch run unit-tests:all
+        run: |
+          env
+          echo "${{ needs.env-var-setup.outputs.is_hatch_adapter }}"
+          hatch run unit-tests:all
 
   ####################
   # Integration Tests
