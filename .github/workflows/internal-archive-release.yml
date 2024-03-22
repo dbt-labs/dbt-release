@@ -1,3 +1,17 @@
+# What?
+#
+# Run tests and edit metadata as needed to tag and release an arbitrary sha.
+# Uploads to an internal archive for further processing.
+#
+# How?
+#
+# After checking out and testing the provided sha, the image is built and uploaded.
+# Metadata is alter with stream processing commands.
+#
+# When?
+#
+# Called by upstream internal-release.yml workflows that live in adapter repos
+
 name: "Internal Archive Release"
 
 on:
