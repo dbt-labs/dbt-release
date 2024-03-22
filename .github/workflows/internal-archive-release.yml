@@ -112,7 +112,7 @@ jobs:
 
   run-unit-tests:
     runs-on: ubuntu-latest
-    needs: [job-setup, env-var-setup]
+    needs: [env-var-setup, job-setup]
 
     env:
       TOXENV: unit
@@ -162,7 +162,7 @@ jobs:
   run-integration-tests:
     name: 'Integration Tests (Tox)'
     runs-on: ubuntu-latest
-    needs: [job-setup, env-var-setup]
+    needs: [env-var-setup, job-setup]
     if: "${{ !needs.env-var-setup.outputs.is_hatch_adapter }}"
 
     env:
@@ -225,7 +225,7 @@ jobs:
 
   run-integration-tests-hatch:
     name: 'Integration Tests (Hatch)'
-    needs: [job-setup, env-var-setup]
+    needs: [env-var-setup, job-setup]
     if: "${{ needs.env-var-setup.outputs.is_hatch_adapter }}"
 
     uses: "dbt-labs/dbt-postgres/.github/workflows/integration-tests.yml@main"
@@ -247,7 +247,6 @@ jobs:
     # 2. Spark invoked (it runs tests via its in-repo workflow)
     # 3. Integration tests passed at least via one job above
     if: |
-      success() ||
       needs.env-var-setup.outputs.is_spark_build ||
       (needs.run-integration-tests.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
 
