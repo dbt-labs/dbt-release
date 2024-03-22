@@ -68,9 +68,9 @@ jobs:
           echo "$ADAPTERS"
           DBMS_NAME="${{ inputs.dbms_name }}"
           if jq -e --arg dbms "$DBMS_NAME" '.[] | select(. == $dbms)' <<< ${ADAPTERS}; then
-            echo "::set-output name=is_hatch_adapter::true"
+            echo "is_hatch_adapter=true" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=is_hatch_adapter::false"
+            echo "is_hatch_adapter=false" >> $GITHUB_OUTPUT
           fi
 
       - name: "Check if dbms_name is spark"
@@ -78,9 +78,9 @@ jobs:
         run: |
           DBMS_NAME="${{ inputs.dbms_name }}"
           if [[ "$DBMS_NAME" == "spark" ]]; then
-            echo "::set-output name=is_spark_build::true"
+            echo "is_spark_build=true" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=is_spark_build::false"
+            echo "is_spark_build=false" >> $GITHUB_OUTPUT
           fi
 
   job-setup:
