@@ -65,8 +65,8 @@ jobs:
         run: |
           echo "HATCH_ADAPTERS='${{ env.HATCH_ADAPTERS }}'" >> $GITHUB_ENV
           ADAPTERS="$(jq -r '.' <<< "${HATCH_ADAPTERS}")"
-          DBMS_NAME="${{ github.event.inputs.dbms_name }}"
-          if jq -e --arg dbms "$DBMS_NAME" '.[] | select(. == $dbms)' <<< "${ADAPTERS}"; then
+          DBMS_NAME="${{ inputs.dbms_name }}"
+          if jq -e --arg dbms "$DBMS_NAME" '.[] | select(. == $dbms)' <<< ${ADAPTERS}; then
             echo "::set-output name=is_hatch_adapter::true"
           else
             echo "::set-output name=is_hatch_adapter::false"
@@ -75,7 +75,7 @@ jobs:
       - name: "Check if dbms_name is spark"
         id: "check_if_this_is_a_spark_build"
         run: |
-          DBMS_NAME="${{ github.event.inputs.dbms_name }}"
+          DBMS_NAME="${{ inputs.dbms_name }}"
           if [[ "$DBMS_NAME" == "spark" ]]; then
             echo "::set-output name=is_spark_build::true"
           else
