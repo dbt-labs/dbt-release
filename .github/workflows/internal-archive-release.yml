@@ -164,6 +164,7 @@ jobs:
     name: 'Integration Tests'
     runs-on: ubuntu-latest
     needs: [env-var-setup, job-setup]
+    if: "${{ needs.env-var-setup.outputs.is_hatch_adapter == 'false' }}"
 
     env:
       TOXENV: integration
@@ -175,7 +176,6 @@ jobs:
           ref: ${{ inputs.sha || 'main' }}
 
       - name: "Setup Environment Variables - ./scripts/env-setup.sh"
-        if: "${{ needs.env-var-setup.outputs.is_hatch_adapter == 'false' }}"
         run: |
           if [ -f './scripts/env-setup.sh' ]; then
             source ./scripts/env-setup.sh
@@ -209,13 +209,11 @@ jobs:
 
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
-        if: "${{ needs.env-var-setup.outputs.is_hatch_adapter == 'false' }}"
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
       - name: "Install Python Dependencies"
-        if: "${{ needs.env-var-setup.outputs.is_hatch_adapter == 'false' }}"
         run: |
           python -m pip install --user --upgrade pip
           python -m pip --version
@@ -223,15 +221,18 @@ jobs:
           tox --version
 
       - name: "Run Tests using tox"
-        if: "${{ needs.env-var-setup.outputs.is_hatch_adapter == 'false' }}"
         run: tox
 
-      - name: 'Integration Tests (Hatch)'
-        if: "${{ needs.env-var-setup.outputs.is_hatch_adapter == 'true' }}"
-        uses: "dbt-labs/dbt-postgres/.github/workflows/integration-tests.yml@main"
-        with:
-          core_branch: "main"
-          dbt_adapters_branch: "main"
+
+  run-integration-tests-hatch:
+    name: 'Integration Tests (Hatch)'
+    needs: [env-var-setup, job-setup]
+    if: "${{ needs.env-var-setup.outputs.is_hatch_adapter == 'true' }}"
+
+    uses: "dbt-labs/dbt-postgres/.github/workflows/integration-tests.yml@main"
+    with:
+      core_branch: "main"
+      dbt_adapters_branch: "main"
 
 
   ####################
@@ -241,7 +242,14 @@ jobs:
   create-internal-release:
     name: Create release for internal archive
     runs-on: ubuntu-latest
-    needs: [env-var-setup, run-unit-tests, run-integration-tests]
+    needs: [run-unit-tests, run-integration-tests, run-integration-tests-hatch]
+    # Build artifact if
+    # 1. Spark invoked (it runs tests via its in-repo workflow)
+    # 2. Integration tests passed at least via one job above
+    if: |
+      success() ||
+      inputs.dbms_name == 'spark' ||
+      (needs.run-integration-tests.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
 
     steps:
       - name: "Checkout provided sha, default to branch main"
