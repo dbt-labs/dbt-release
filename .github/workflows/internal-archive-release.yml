@@ -247,9 +247,10 @@ jobs:
     # 1. Spark invoked (it runs tests via its in-repo workflow)
     # 2. Integration tests passed at least via one job above
     if: |
-      success() ||
-      inputs.dbms_name == 'spark' ||
-      (needs.run-integration-tests.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
+      always() && (
+        needs.initial-setup.outputs.is_spark_build == 'true' ||
+        (needs.run-integration-tests.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
+      )
 
     steps:
       - name: "Checkout provided sha, default to branch main"
