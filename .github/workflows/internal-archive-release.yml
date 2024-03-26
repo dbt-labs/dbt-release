@@ -1,3 +1,17 @@
+# What?
+#
+# Run tests and edit metadata as needed to tag and release an arbitrary ref.
+# Uploads to an internal archive for further processing.
+#
+# How?
+#
+# After checking out and testing the provided ref, the image is built and uploaded.
+# Metadata is altered with stream processing commands.
+#
+# When?
+#
+# Called by upstream internal-release.yml workflows that live in adapter repos
+
 name: "Internal Archive Release"
 
 on:
@@ -15,16 +29,16 @@ on:
         description: "Package test command"
         type: string
         required: true
-      sha:
-        description: "The sha to use (leave empty to use latest on main)"
+      ref:
+        description: "The ref to use (leave empty to use main)"
         type: string
-        required: false
+        required: true
 
 permissions: read-all
 
 # will cancel previous workflows triggered by the same event and for the same ref for PRs or same SHA otherwise
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.ref || github.sha }}-${{ inputs.deploy-to }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.ref || github.ref }}-${{ inputs.deploy-to }}
   cancel-in-progress: true
 
 defaults:
@@ -32,55 +46,85 @@ defaults:
     shell: bash
 
 env:
-  PYTHON_TARGET_VERSION: 3.11
+  PYTHON_TARGET_VERSION: 3.8
   NOTIFICATION_PREFIX: "[Internal Archive Release]"
+  TEMP_PROFILE_NAME: "temp_aws_profile"
+  HATCH_ADAPTERS: '["postgres"]' # Must be valid JSON
+
+
 
 jobs:
+  initial-setup:
+    runs-on: ubuntu-latest
+    outputs:
+      is_hatch_adapter: ${{ steps.check_if_adapter_builds_with_hatch.outputs.is_hatch_adapter }}
+      is_spark_build: ${{ steps.check_if_this_is_a_spark_build.outputs.is_spark_build }}
+    steps:
+      - name: "Check if dbms_name is contained in HATCH_ADAPTERS"
+        id: "check_if_adapter_builds_with_hatch"
+        run: |
+          echo "HATCH_ADAPTERS='${{ env.HATCH_ADAPTERS }}'" >> $GITHUB_ENV
+          ADAPTERS="$(jq -r '.' <<< "${HATCH_ADAPTERS}")"
+          echo "$ADAPTERS"
+          DBMS_NAME="${{ inputs.dbms_name }}"
+          if jq -e --arg dbms "$DBMS_NAME" '.[] | select(. == $dbms)' <<< ${ADAPTERS}; then
+            echo "is_hatch_adapter=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_hatch_adapter=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: "Check if dbms_name is spark"
+        id: "check_if_this_is_a_spark_build"
+        run: |
+          DBMS_NAME="${{ inputs.dbms_name }}"
+          if [[ "$DBMS_NAME" == "spark" ]]; then
+            echo "is_spark_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_spark_build=false" >> $GITHUB_OUTPUT
+          fi
+
   job-setup:
     name: Job Setup
     runs-on: ubuntu-latest
+    needs: [initial-setup]
     steps:
       - name: "[DEBUG] Print Variables"
         run: |
           echo Warehouse name:                     ${{ inputs.dbms_name }}
           echo The release version number:         ${{ inputs.version_number }}
-          echo The release sha:                    ${{ inputs.sha }}
+          echo The release ref:                    ${{ inputs.ref }}
           echo Package test command:               ${{ inputs.package_test_command }}
 
-      - name: "Checkout provided sha, default to branch main"
+      - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha || 'main' }}
+          ref: ${{ inputs.ref || 'main' }}
 
-      - name: "Validate patch version input against patch version of sha"
+      - name: "Validate patch version input against patch version of ref"
         id: validate_version
         run: |
           version_in_file="$(grep 'version =' "dbt/adapters/${{ inputs.dbms_name }}/__version__.py" | cut -d '"' -f2)"
 
           if [[ "${{ inputs.version_number }}" != "${version_in_file}" ]]; then
-            message="Error: patch version input to this job ${{ inputs.version_number }} and version of sha ${version_in_file} are not equal. Exiting..."
+            message="Error: patch version input to this job ${{ inputs.version_number }} and version of code at input ref ${version_in_file} are not equal. Exiting..."
             echo "::error $title::$message"
             exit 1
           fi
 
-  run-unit-tests:
+  run-unit-tests-tox:
+    name: 'Unit Tests (Tox)'
     runs-on: ubuntu-latest
-    needs: [job-setup]
+    needs: [initial-setup, job-setup]
+    if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'false' }}"
 
     env:
       TOXENV: unit
 
     steps:
-      - name: "Checkout provided sha, default to branch main"
+      - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha || 'main' }}
-
-      - name: "Install Spark Dependencies"
-        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install libsasl2-dev
+          ref: ${{ inputs.ref || 'main' }}
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
@@ -94,24 +138,56 @@ jobs:
           python -m pip --version
           python -m tox --version
 
-      - name: "Run Tox"
+      - name: "Run Tests using tox"
         run: tox
 
-  run-integration-tests:
+  run-unit-tests-hatch:
+    name: 'Unit Tests (Hatch)'
     runs-on: ubuntu-latest
-    needs: [job-setup]
+    if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'true' }}"
+    needs: [initial-setup, job-setup]
+
+    steps:
+      - name: "Checkout provided ref, default to branch main"
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || 'main' }}
+
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
+
+      - name: "Setup `hatch`"
+        uses: dbt-labs/dbt-adapters/.github/actions/setup-hatch@main
+
+      - name: "Run Tests using hatch"
+        run: hatch run unit-tests:all
+
+  ####################
+  # Integration Tests
+  ####################
+
+  run-integration-tests-tox:
+    name: 'Integration Tests (Tox)'
+    runs-on: ubuntu-latest
+    needs: [initial-setup, job-setup, run-unit-tests-tox]
+    if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'false' }}"
 
     env:
       TOXENV: integration
 
     steps:
-      - name: "Checkout provided sha, default to branch main"
+      - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha || 'main' }}
+          ref: ${{ inputs.ref || 'main' }}
 
       - name: "Setup Environment Variables - ./scripts/env-setup.sh"
-        run: source ./scripts/env-setup.sh
+        run: |
+          if [ -f './scripts/env-setup.sh' ]; then
+            source ./scripts/env-setup.sh
+          fi
 
       - name: "Setup Environment Variables - Secrets Context"
         uses: actions/github-script@v7
@@ -139,37 +215,56 @@ jobs:
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
-      - name: "Install Spark Dependencies"
-        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install libsasl2-dev
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
-      - name: "Install python tools"
+      - name: "Install Python Dependencies"
         run: |
           python -m pip install --user --upgrade pip
           python -m pip --version
           python -m pip install tox
           tox --version
 
-      - name: "Run Tests"
+      - name: "Run Tests using tox"
         run: tox
+
+
+  run-integration-tests-hatch:
+    name: 'Integration Tests (Hatch)'
+    needs: [initial-setup, job-setup, run-unit-tests-hatch]
+    if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'true' }}"
+
+    uses: "dbt-labs/dbt-postgres/.github/workflows/integration-tests.yml@main"
+    with:
+      core_branch: "main"
+      dbt_adapters_branch: "main"
+
+
+  ####################
+  # Artifact Handling
+  ####################
 
   create-internal-release:
     name: Create release for internal archive
     runs-on: ubuntu-latest
-    needs: [run-unit-tests, run-integration-tests]
+    needs: [initial-setup, run-integration-tests-tox, run-integration-tests-hatch]
+    # Build artifact if
+    # 1. Spark invoked (it runs tests via its in-repo workflow)
+    # 2. Integration tests passed at least via one job above
+    if: |
+      always() && (
+        needs.initial-setup.outputs.is_spark_build == 'true' ||
+        (needs.run-integration-tests-tox.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
+      )
 
     steps:
-      - name: "Checkout provided sha, default to branch main"
+      - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha || 'main' }}
+          ref: ${{ inputs.ref || 'main' }}
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
@@ -184,18 +279,20 @@ jobs:
 
       - name: "Configure AWS profile for upload"
         run: |
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws configure set output text --profile ${{ secrets.AWS_PROFILE_NAME }}
-          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }}
+          aws configure set aws_access_key_id ${{ secrets.AWS_ARCHIVE_ACCESS_KEY_ID }} --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_ARCHIVE_SECRET_ACCESS_KEY }} --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws configure set output text --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
 
       - name: "Alter version in metadata of python package"
         run: |
           version_file="dbt/adapters/${{ inputs.dbms_name }}/__version__.py"
+          setup_file="./setup.py"
           version_in_file=$(grep 'version =' "${version_file}" | cut -d '"' -f2)
 
-          versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ secrets.AWS_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
+          # check the latest build of adapter code in our archive
+          versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
 
           current_latest_version="$(echo "${versions_on_aws}" | sort -V | tail -n 1 )"
 
@@ -203,26 +300,62 @@ jobs:
           echo "[Debug] current_latest_version: ${current_latest_version}"
 
           echo ">>> Altering ${version_file}"
-          if [[ -z "${current_latest_version}" ]]; then
-              echo "Skipping as no version on aws yet!"
-          elif [[ ${current_latest_version} =~ (.*build)([0-9]+)$ ]]; then
+          # Ensure a build+xxx where xxx is an integer is always present in versioning
+          # sed may be a no-op -- this is fine!
+          if [[ ${current_latest_version} =~ (.*build)([0-9]+)$ ]]; then
               base="${BASH_REMATCH[1]}"
               number="${BASH_REMATCH[2]}"
               new_number=$((number + 1))
-              tee <<< "version = \"${base}${new_number}\"" "${version_file}"
+              v="${base}${new_number}"
+              tee <<< "version = \"${v}\"" "${version_file}"
+              if [ -f "${setup_file}" ]; then
+                sed -i "s/^package_version = .*$/package_version = \"${v}\"/" "${setup_file}"
+              fi
           else
-              tee <<< "version = \"${current_latest_version}+build1\"" "${version_file}"
+              v="${version_in_file}+build1"
+              tee <<< "version = \"${v}\"" "${version_file}"
+              if [ -f "${setup_file}" ]; then
+                sed -i "s/^package_version = .*$/package_version = \"${v}\"/" "${setup_file}"
+              fi
           fi
 
+      ################
+      # Build package
+      ################
+
+      #
+      # 1. Build with setup.py
+      #
       - name: "Build Distributions - scripts/build-dist.sh"
+        if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'false' }}"
         run: scripts/build-dist.sh
+
+      #
+      # 2. Build with Hatch
+      #
+      - name: "Setup `hatch`"
+        if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'true' }}"
+        uses: dbt-labs/dbt-adapters/.github/actions/setup-hatch@main
+
+      - name: "Build Distributions - hatch"
+        if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'true' }}"
+        run: hatch build
+
+      ###################
+      # Check and publish
+      ###################
 
       - name: "[DEBUG] Show Distributions"
         run: ls -lh dist/
 
       - name: "Check Distribution Descriptions"
         run: |
-          twine check dist/*
+          version_file="dbt/adapters/__version__.py"
+          if [[ "${{ needs.initial-setup.outputs.is_hatch_adapter }}" == 'true' ]]; then
+            hatch run build:check-all
+          else
+            twine check dist/*
+          fi
 
       - name: "[DEBUG] Check Wheel Contents"
         run: |
@@ -235,4 +368,4 @@ jobs:
           version_file="$(echo "dbt/adapters/${{ inputs.dbms_name }}/__version__.py")"
           version="$(grep 'version =' "${version_file}" | cut -d '"' -f2)"
           message="-- Success -- released ${version}"
-          echo "::notice $title::$message"
+          echo "::notice $NOTIFICATION_PREFIX::$message"
