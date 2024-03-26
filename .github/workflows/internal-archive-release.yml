@@ -257,7 +257,7 @@ jobs:
     if: |
       always() && (
         needs.initial-setup.outputs.is_spark_build == 'true' ||
-        (needs.run-integration-tests.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
+        (needs.run-integration-tests-tox.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
       )
 
     steps:
