@@ -1,11 +1,11 @@
 # What?
 #
-# Run tests and edit metadata as needed to tag and release an arbitrary sha.
+# Run tests and edit metadata as needed to tag and release an arbitrary ref.
 # Uploads to an internal archive for further processing.
 #
 # How?
 #
-# After checking out and testing the provided sha, the image is built and uploaded.
+# After checking out and testing the provided ref, the image is built and uploaded.
 # Metadata is altered with stream processing commands.
 #
 # When?
@@ -29,8 +29,8 @@ on:
         description: "Package test command"
         type: string
         required: true
-      sha:
-        description: "The sha to use (leave empty to use latest on main)"
+      ref:
+        description: "The ref to use (leave empty to use main)"
         type: string
         required: true
 
@@ -38,7 +38,7 @@ permissions: read-all
 
 # will cancel previous workflows triggered by the same event and for the same ref for PRs or same SHA otherwise
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.ref || github.sha }}-${{ inputs.deploy-to }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ contains(github.event_name, 'pull_request') && github.event.pull_request.head.ref || github.ref }}-${{ inputs.deploy-to }}
   cancel-in-progress: true
 
 defaults:
@@ -92,26 +92,26 @@ jobs:
         run: |
           echo Warehouse name:                     ${{ inputs.dbms_name }}
           echo The release version number:         ${{ inputs.version_number }}
-          echo The release sha:                    ${{ inputs.sha }}
+          echo The release ref:                    ${{ inputs.ref }}
           echo Package test command:               ${{ inputs.package_test_command }}
 
-      - name: "Checkout provided sha, default to branch main"
+      - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha || 'main' }}
+          ref: ${{ inputs.ref || 'main' }}
 
-      - name: "Validate patch version input against patch version of sha"
+      - name: "Validate patch version input against patch version of ref"
         id: validate_version
         run: |
           version_in_file="$(grep 'version =' "dbt/adapters/${{ inputs.dbms_name }}/__version__.py" | cut -d '"' -f2)"
 
           if [[ "${{ inputs.version_number }}" != "${version_in_file}" ]]; then
-            message="Error: patch version input to this job ${{ inputs.version_number }} and version of sha ${version_in_file} are not equal. Exiting..."
+            message="Error: patch version input to this job ${{ inputs.version_number }} and version of code at input ref ${version_in_file} are not equal. Exiting..."
             echo "::error $title::$message"
             exit 1
           fi
 
-  run-unit-tests:
+  run-unit-tests-tox:
     name: 'Unit Tests (Tox)'
     runs-on: ubuntu-latest
     needs: [initial-setup, job-setup]
@@ -121,10 +121,10 @@ jobs:
       TOXENV: unit
 
     steps:
-      - name: "Checkout provided sha, default to branch main"
+      - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha || 'main' }}
+          ref: ${{ inputs.ref || 'main' }}
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
@@ -148,10 +148,10 @@ jobs:
     needs: [initial-setup, job-setup]
 
     steps:
-      - name: "Checkout provided sha, default to branch main"
+      - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha || 'main' }}
+          ref: ${{ inputs.ref || 'main' }}
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
@@ -168,20 +168,20 @@ jobs:
   # Integration Tests
   ####################
 
-  run-integration-tests:
+  run-integration-tests-tox:
     name: 'Integration Tests (Tox)'
     runs-on: ubuntu-latest
-    needs: [initial-setup, job-setup, run-unit-tests]
+    needs: [initial-setup, job-setup, run-unit-tests-tox]
     if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'false' }}"
 
     env:
       TOXENV: integration
 
     steps:
-      - name: "Checkout provided sha, default to branch main"
+      - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha || 'main' }}
+          ref: ${{ inputs.ref || 'main' }}
 
       - name: "Setup Environment Variables - ./scripts/env-setup.sh"
         run: |
@@ -250,7 +250,7 @@ jobs:
   create-internal-release:
     name: Create release for internal archive
     runs-on: ubuntu-latest
-    needs: [initial-setup, run-integration-tests, run-integration-tests-hatch]
+    needs: [initial-setup, run-integration-tests-tox, run-integration-tests-hatch]
     # Build artifact if
     # 1. Spark invoked (it runs tests via its in-repo workflow)
     # 2. Integration tests passed at least via one job above
@@ -261,10 +261,10 @@ jobs:
       )
 
     steps:
-      - name: "Checkout provided sha, default to branch main"
+      - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha || 'main' }}
+          ref: ${{ inputs.ref || 'main' }}
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
