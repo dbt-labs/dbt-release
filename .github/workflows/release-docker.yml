@@ -32,7 +32,7 @@ on:
       test_run:
         description: Test Run (don't publish)
         type: boolean
-        default: false
+        default: true
 
   workflow_call:
     inputs:
@@ -47,7 +47,7 @@ on:
       test_run:
         description: Test Run (don't publish)
         type: boolean
-        default: false
+        default: true
 
 jobs:
   version_metadata:
@@ -105,7 +105,7 @@ jobs:
           echo Build Arg Value:  ${{ steps.build_arg.outputs.value }}
 
       - name: Build and push `${{ inputs.package }}`
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !inputs.test_run }}
         uses: docker/build-push-action@v5
         with:
           file: docker/Dockerfile
