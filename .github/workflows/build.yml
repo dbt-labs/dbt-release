@@ -83,7 +83,6 @@ jobs:
           echo The release version number:         ${{ inputs.version_number }}
           echo The changelog path:                 ${{ inputs.changelog_path }}
           echo The build script path:              ${{ inputs.build_script_path }}
-          echo The s3 bucket name:                 ${{ inputs.s3_bucket_name }}
           echo The package test command:           ${{ inputs.package_test_command }}
           echo Test run:                           ${{ inputs.test_run }}
           echo Nightly release:                    ${{ inputs.nightly_release }}
