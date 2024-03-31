@@ -103,6 +103,7 @@ jobs:
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref || 'main' }}"
+          path: "dbt-${{ inputs.dbms_name }}"
 
       - name: "Validate patch version input against patch version of ref"
         id: validate_version
@@ -132,6 +133,7 @@ jobs:
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name}}"
           ref: "${{ inputs.ref || 'main' }}"
+          path: "dbt-${{ inputs.dbms_name }}"
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
@@ -162,6 +164,7 @@ jobs:
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name}}"
           ref: "${{ inputs.ref || 'main' }}"
+          path: "dbt-${{ inputs.dbms_name }}"
 
       - name: "Setup `hatch`"
         uses: dbt-labs/dbt-adapters/.github/actions/setup-hatch@main
@@ -190,6 +193,7 @@ jobs:
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name}}"
           ref: "${{ inputs.ref || 'main' }}"
+          path: "dbt-${{ inputs.dbms_name }}"
 
       - name: "Setup Environment Variables - ./scripts/env-setup.sh"
         run: |
@@ -262,13 +266,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: [initial-setup, job-setup, run-integration-tests-tox, run-integration-tests-hatch]
     # Build artifact if
-    # 1. Spark invoked (it runs tests via its in-repo workflow)
-    # 2. Integration tests passed at least via one job above
+    # 1. Setup jobs succeeded
+    # 2a. Tests can be skipped
+    # 2b. One of the integration test sets passed (these only run on passing unit tests)
     if: |
-      always() && (
-        needs.initial-setup.outputs.skip_tests == 'true' ||
-        (needs.run-integration-tests-tox.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
-      )
+      always() &&
+        needs.job-setup.result == 'success' &&
+        (
+          needs.initial-setup.outputs.skip_tests == 'true' ||
+          (needs.run-integration-tests-tox.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
+        )
 
     steps:
       - name: "Checkout provided ref, default to branch main"
@@ -276,6 +283,7 @@ jobs:
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name}}"
           ref: "${{ inputs.ref || 'main' }}"
+          path: "dbt-${{ inputs.dbms_name }}"
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
