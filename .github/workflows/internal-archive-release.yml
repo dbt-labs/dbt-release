@@ -33,6 +33,11 @@ on:
         description: "The ref to use (leave empty to use main)"
         type: string
         required: true
+      org:
+        description: "The organization that maintains the adapter"
+        type: string
+        default: "dbt-labs"
+        required: true
 
 permissions: read-all
 
@@ -96,7 +101,8 @@ jobs:
       - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || 'main' }}
+          repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
+          ref: "${{ inputs.ref || 'main' }}"
 
       - name: "Validate patch version input against patch version of ref"
         id: validate_version
@@ -124,7 +130,8 @@ jobs:
       - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || 'main' }}
+          repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name}}"
+          ref: "${{ inputs.ref || 'main' }}"
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
@@ -153,7 +160,8 @@ jobs:
       - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || 'main' }}
+          repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name}}"
+          ref: "${{ inputs.ref || 'main' }}"
 
       - name: "Setup `hatch`"
         uses: dbt-labs/dbt-adapters/.github/actions/setup-hatch@main
@@ -180,7 +188,8 @@ jobs:
       - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || 'main' }}
+          repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name}}"
+          ref: "${{ inputs.ref || 'main' }}"
 
       - name: "Setup Environment Variables - ./scripts/env-setup.sh"
         run: |
@@ -265,7 +274,8 @@ jobs:
       - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || 'main' }}
+          repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name}}"
+          ref: "${{ inputs.ref || 'main' }}"
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
