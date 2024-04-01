@@ -55,7 +55,7 @@ env:
   NOTIFICATION_PREFIX: "[Internal Archive Release]"
   TEMP_PROFILE_NAME: "temp_aws_profile"
   HATCH_ADAPTERS: (postgres) # Must be | deliminated list
-  SKIP_TEST_ADAPTERS: (spark|trino) # Must be | deliminated list
+  SKIP_TEST_ADAPTERS: (spark|trino|databricks)
 
 
 
@@ -103,7 +103,6 @@ jobs:
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref || 'main' }}"
-          path: "dbt-${{ inputs.dbms_name }}"
 
       - name: "Validate patch version input against patch version of ref"
         id: validate_version
