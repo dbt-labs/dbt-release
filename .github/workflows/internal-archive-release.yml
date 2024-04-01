@@ -56,7 +56,7 @@ env:
   NOTIFICATION_PREFIX: "[Internal Archive Release]"
   TEMP_PROFILE_NAME: "temp_aws_profile"
   HATCH_ADAPTERS: (postgres) # Must be | deliminated list
-  SKIP_TEST_ADAPTERS: (spark|trino|databricks)
+  ADAPTERS_THAT_SKIP_TESTS: (spark|trino|databricks)
 
 
 
@@ -81,7 +81,8 @@ jobs:
       - name: "Check if dbms can skip tests"
         id: "check_if_this_build_can_skip_tests"
         run: |
-          if [[ "${{ inputs.dbms_name }}" =~ ${{ env.SKIP_TEST_ADAPTERS }} ]]; then
+          # again, regexes are unquoted to avoid quoting side effects
+          if [[ "${{ inputs.dbms_name }}" =~ ${{ env.ADAPTERS_THAT_SKIP_TESTS }} ]]; then
             echo "skip_tests=true" >> $GITHUB_OUTPUT
           else
             echo "skip_tests=false" >> $GITHUB_OUTPUT
