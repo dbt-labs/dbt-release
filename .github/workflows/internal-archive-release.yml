@@ -33,7 +33,7 @@ on:
         description: "The ref to use (default to main)"
         type: string
         default: "main"
-        required: true
+        required: false
       org:
         description: "The organization that maintains the adapter"
         type: string
