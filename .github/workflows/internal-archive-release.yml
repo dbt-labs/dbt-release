@@ -107,7 +107,7 @@ jobs:
       - name: "Validate patch version input against patch version of ref"
         id: validate_version
         run: |
-          version_in_file="$(grep 'version =' "dbt/adapters/${{ inputs.dbms_name }}/__version__.py" | cut -d '"' -f2)"
+          version_in_file="$(grep -E 'version(: str)? =' "dbt/adapters/${{ inputs.dbms_name }}/__version__.py" | cut -d '"' -f2)"
 
           if [[ "${{ inputs.version_number }}" != "${version_in_file}" ]]; then
             message="Error: patch version input to this job ${{ inputs.version_number }} and version of code at input ref ${version_in_file} are not equal. Exiting..."
