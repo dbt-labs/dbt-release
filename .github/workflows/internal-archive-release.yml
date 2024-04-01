@@ -303,7 +303,7 @@ jobs:
         run: |
           version_file="dbt/adapters/${{ inputs.dbms_name }}/__version__.py"
           setup_file="./setup.py"
-          version_in_file=$(grep 'version =' "${version_file}" | cut -d '"' -f2)
+          version_in_file=$(grep -E 'version(: str)? =' "${version_file}" | cut -d '"' -f2)
 
           # check the latest build of adapter code in our archive
           versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
