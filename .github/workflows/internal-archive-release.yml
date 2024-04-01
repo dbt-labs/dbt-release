@@ -37,7 +37,7 @@ on:
         description: "The organization that maintains the adapter"
         type: string
         default: "dbt-labs"
-        required: true
+        required: false  # only needed by third party workflows
 
 permissions: read-all
 
