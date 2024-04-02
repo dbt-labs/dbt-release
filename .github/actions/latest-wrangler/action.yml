@@ -1,0 +1,21 @@
+name: "GitHub package `latest` tag wrangler for containers"
+description: "Determines if the published image should include `latest` tags"
+
+inputs:
+  package_name:
+    description: "Package being published (i.e. `dbt-core`, `dbt-redshift`, etc.)"
+    required: true
+  new_version:
+    description: "SemVer of the package being published (i.e. 1.7.2, 1.8.0a1, etc.)"
+    required: true
+  github_token:
+    description: "Auth token for GitHub (must have view packages scope)"
+    required: true
+
+outputs:
+  tags:
+    description: "A list of tags to associate with this version"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"

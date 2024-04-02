@@ -61,7 +61,9 @@ jobs:
 
       - name: Get the tags to publish
         id: tags
-        uses: ./.github/actions/latest-wrangler
+        # this cannot be relative because this workflow is called from multiple repos
+        # in addition to a manual trigger
+        uses: dbt-labs/dbt-release/latest-wrangler@main
         with:
           package_name: ${{ inputs.package }}
           new_version: ${{ inputs.version_number }}
