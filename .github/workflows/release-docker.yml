@@ -56,9 +56,6 @@ jobs:
     outputs:
       fully_qualified_tags: ${{ steps.tags.outputs.fully_qualified_tags }}
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v4
-
       - name: Get the tags to publish
         id: tags
         # this cannot be relative because this workflow is called from multiple repos
