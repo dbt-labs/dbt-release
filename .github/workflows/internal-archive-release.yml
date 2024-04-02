@@ -30,9 +30,15 @@ on:
         type: string
         required: true
       ref:
-        description: "The ref to use (leave empty to use main)"
+        description: "The ref to use (default to main)"
         type: string
-        required: true
+        default: "main"
+        required: false
+      org:
+        description: "The organization that maintains the adapter"
+        type: string
+        default: "dbt-labs"
+        required: false  # only needed by third party workflows
 
 permissions: read-all
 
@@ -49,7 +55,8 @@ env:
   PYTHON_TARGET_VERSION: 3.8
   NOTIFICATION_PREFIX: "[Internal Archive Release]"
   TEMP_PROFILE_NAME: "temp_aws_profile"
-  HATCH_ADAPTERS: '["postgres"]' # Must be valid JSON
+  HATCH_ADAPTERS: (postgres) # Must be | deliminated list
+  ADAPTERS_THAT_SKIP_TESTS: (spark|trino|databricks)
 
 
 
@@ -58,29 +65,27 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       is_hatch_adapter: ${{ steps.check_if_adapter_builds_with_hatch.outputs.is_hatch_adapter }}
-      is_spark_build: ${{ steps.check_if_this_is_a_spark_build.outputs.is_spark_build }}
+      skip_tests: ${{ steps.check_if_this_build_can_skip_tests.outputs.skip_tests }}
     steps:
       - name: "Check if dbms_name is contained in HATCH_ADAPTERS"
         id: "check_if_adapter_builds_with_hatch"
         run: |
           echo "HATCH_ADAPTERS='${{ env.HATCH_ADAPTERS }}'" >> $GITHUB_ENV
-          ADAPTERS="$(jq -r '.' <<< "${HATCH_ADAPTERS}")"
-          echo "$ADAPTERS"
-          DBMS_NAME="${{ inputs.dbms_name }}"
-          if jq -e --arg dbms "$DBMS_NAME" '.[] | select(. == $dbms)' <<< ${ADAPTERS}; then
+          # note regex arg not commented to avoid unintended Bash quoting effects
+          if [[ "${{ inputs.dbms_name }}" =~ ${{ env.HATCH_ADAPTERS }} ]]; then
             echo "is_hatch_adapter=true" >> $GITHUB_OUTPUT
           else
             echo "is_hatch_adapter=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: "Check if dbms_name is spark"
-        id: "check_if_this_is_a_spark_build"
+      - name: "Check if dbms can skip tests"
+        id: "check_if_this_build_can_skip_tests"
         run: |
-          DBMS_NAME="${{ inputs.dbms_name }}"
-          if [[ "$DBMS_NAME" == "spark" ]]; then
-            echo "is_spark_build=true" >> $GITHUB_OUTPUT
+          # again, regexes are unquoted to avoid quoting side effects
+          if [[ "${{ inputs.dbms_name }}" =~ ${{ env.ADAPTERS_THAT_SKIP_TESTS }} ]]; then
+            echo "skip_tests=true" >> $GITHUB_OUTPUT
           else
-            echo "is_spark_build=false" >> $GITHUB_OUTPUT
+            echo "skip_tests=false" >> $GITHUB_OUTPUT
           fi
 
   job-setup:
@@ -98,12 +103,13 @@ jobs:
       - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || 'main' }}
+          repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
+          ref: "${{ inputs.ref }}"
 
       - name: "Validate patch version input against patch version of ref"
         id: validate_version
         run: |
-          version_in_file="$(grep 'version =' "dbt/adapters/${{ inputs.dbms_name }}/__version__.py" | cut -d '"' -f2)"
+          version_in_file="$(grep -E 'version(: str)? =' "dbt/adapters/${{ inputs.dbms_name }}/__version__.py" | cut -d '"' -f2)"
 
           if [[ "${{ inputs.version_number }}" != "${version_in_file}" ]]; then
             message="Error: patch version input to this job ${{ inputs.version_number }} and version of code at input ref ${version_in_file} are not equal. Exiting..."
@@ -115,7 +121,9 @@ jobs:
     name: 'Unit Tests (Tox)'
     runs-on: ubuntu-latest
     needs: [initial-setup, job-setup]
-    if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'false' }}"
+    if: |
+      needs.initial-setup.outputs.is_hatch_adapter == 'false' &&
+      needs.initial-setup.outputs.skip_tests == 'false'
 
     env:
       TOXENV: unit
@@ -124,7 +132,8 @@ jobs:
       - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || 'main' }}
+          repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
+          ref: "${{ inputs.ref }}"
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
@@ -144,19 +153,17 @@ jobs:
   run-unit-tests-hatch:
     name: 'Unit Tests (Hatch)'
     runs-on: ubuntu-latest
-    if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'true' }}"
     needs: [initial-setup, job-setup]
+    if: |
+      needs.initial-setup.outputs.is_hatch_adapter == 'true' &&
+      needs.initial-setup.outputs.skip_tests == 'false'
 
     steps:
       - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || 'main' }}
-
-      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_TARGET_VERSION }}
+          repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
+          ref: "${{ inputs.ref }}"
 
       - name: "Setup `hatch`"
         uses: dbt-labs/dbt-adapters/.github/actions/setup-hatch@main
@@ -172,7 +179,9 @@ jobs:
     name: 'Integration Tests (Tox)'
     runs-on: ubuntu-latest
     needs: [initial-setup, job-setup, run-unit-tests-tox]
-    if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'false' }}"
+    if: |
+      needs.initial-setup.outputs.is_hatch_adapter == 'false' &&
+      needs.initial-setup.outputs.skip_tests == 'false'
 
     env:
       TOXENV: integration
@@ -181,7 +190,8 @@ jobs:
       - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || 'main' }}
+          repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
+          ref: "${{ inputs.ref }}"
 
       - name: "Setup Environment Variables - ./scripts/env-setup.sh"
         run: |
@@ -235,7 +245,9 @@ jobs:
   run-integration-tests-hatch:
     name: 'Integration Tests (Hatch)'
     needs: [initial-setup, job-setup, run-unit-tests-hatch]
-    if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'true' }}"
+    if: |
+      needs.initial-setup.outputs.is_hatch_adapter == 'true' &&
+      needs.initial-setup.outputs.skip_tests == 'false'
 
     uses: "dbt-labs/dbt-postgres/.github/workflows/integration-tests.yml@main"
     with:
@@ -250,21 +262,25 @@ jobs:
   create-internal-release:
     name: Create release for internal archive
     runs-on: ubuntu-latest
-    needs: [initial-setup, run-integration-tests-tox, run-integration-tests-hatch]
+    needs: [initial-setup, job-setup, run-integration-tests-tox, run-integration-tests-hatch]
     # Build artifact if
-    # 1. Spark invoked (it runs tests via its in-repo workflow)
-    # 2. Integration tests passed at least via one job above
+    # 1. Setup jobs succeeded
+    # 2a. Tests can be skipped
+    # 2b. One of the integration test sets passed (these only run on passing unit tests)
     if: |
-      always() && (
-        needs.initial-setup.outputs.is_spark_build == 'true' ||
-        (needs.run-integration-tests-tox.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
-      )
+      always() &&
+        needs.job-setup.result == 'success' &&
+        (
+          needs.initial-setup.outputs.skip_tests == 'true' ||
+          (needs.run-integration-tests-tox.result == 'success' || needs.run-integration-tests-hatch.result == 'success')
+        )
 
     steps:
       - name: "Checkout provided ref, default to branch main"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || 'main' }}
+          repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
+          ref: "${{ inputs.ref }}"
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
         uses: actions/setup-python@v5
@@ -289,7 +305,7 @@ jobs:
         run: |
           version_file="dbt/adapters/${{ inputs.dbms_name }}/__version__.py"
           setup_file="./setup.py"
-          version_in_file=$(grep 'version =' "${version_file}" | cut -d '"' -f2)
+          version_in_file=$(grep -E 'version(: str)? =' "${version_file}" | cut -d '"' -f2)
 
           # check the latest build of adapter code in our archive
           versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
@@ -328,7 +344,13 @@ jobs:
       #
       - name: "Build Distributions - scripts/build-dist.sh"
         if: "${{ needs.initial-setup.outputs.is_hatch_adapter == 'false' }}"
-        run: scripts/build-dist.sh
+        run: |
+          if [ -f scripts/build-dist.sh ]; then
+            scripts/build-dist.sh
+          else
+            # Fallback onto to basic command
+            python setup.py sdist bdist_wheel
+          fi
 
       #
       # 2. Build with Hatch
