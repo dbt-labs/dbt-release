@@ -1,8 +1,17 @@
 version: 2
 updates:
-  # github dependencies
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directory: "/.github/workflows"
+    schedule:
+      interval: "weekly"
+    rebase-strategy: "disabled"
+  - package-ecosystem: "github-actions"
+    directory: "/.github/actions/latest-wrangler"
+    schedule:
+      interval: "weekly"
+    rebase-strategy: "disabled"
+  - package-ecosystem: "docker"
+    directory: "/.github/actions/latest-wrangler"
     schedule:
       interval: "weekly"
     rebase-strategy: "disabled"
