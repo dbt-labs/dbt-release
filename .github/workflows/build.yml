@@ -62,6 +62,15 @@ on:
         required: false
         default: false
         type: boolean
+    # these secrets are no longer used but must remain defined to avoid breaking changes
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        description: AWS Access Key ID
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        description: AWS Access Key
+        required: true
+
 
 permissions:
   contents: write
