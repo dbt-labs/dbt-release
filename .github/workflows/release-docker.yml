@@ -78,3 +78,6 @@ jobs:
           target: ${{ inputs.package }}
           build-args: commit_ref=v${{ inputs.version_number }}
           tags: ${{ needs.version_metadata.outputs.fully_qualified_tags }}
+        env:
+          # avoids the unknown/unknown architecture UI bug in GHCR
+          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
