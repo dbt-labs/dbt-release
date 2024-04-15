@@ -1,13 +1,14 @@
 # **what?**
-# This workflow will generate a series of docker images for dbt and push them to the github container registry
+# This workflow generates a docker image and pushes it to the GitHub Container Registry
 #
 # **why?**
 # Docker images for dbt are used in a number of important places throughout the dbt ecosystem.
 # This is how we keep those images up-to-date.
 #
 # **when?**
-# This is triggered manually
-name: Docker release
+# This is triggered indirectly via a release pipeline
+name: "Docker release"
+run-name: "Docker release: `${{ inputs.package }}==${{ inputs.version }}`"
 
 permissions:
   packages: write
@@ -16,56 +17,56 @@ on:
   workflow_call:
     inputs:
       package:
-        description: The package to release
+        description: "The package to release"
         type: string
-        required: true
+        default: ${{ github.event.repository.name }}
       version_number:
-        description: The version number to release as a SemVer (e.g. 1.0.0b1, without `latest` or `v`)
+        description: "The version number to release (e.g. 1.0.0b1, without `latest` or `v`)"
         type: string
         required: true
+      dockerfile:
+        description: "The path to the docker file from the repo root"
+        type: string
+        default: "docker/Dockerfile"
+      platforms:
+        description: "The platforms to publish as a comma-delimited string"
+        type: string
+        default: "linux/amd64"
       test_run:
-        description: Test Run (don't publish)
+        description: "Test run (don't publish)"
         type: boolean
         default: true
 
 jobs:
-  version_metadata:
-    name: "Get version metadata"
+  tags:
+    name: "Get container tags"
     runs-on: ubuntu-latest
     outputs:
-      fully_qualified_tags: ${{ steps.tags.outputs.fully_qualified_tags }}
+      tags: ${{ steps.tags.outputs.fully_qualified_tags }}
     steps:
-
       - name: "Get the tags to publish"
         id: tags
         # this cannot be relative because this workflow is called from multiple repos
-        # in addition to a manual trigger
         uses: dbt-labs/dbt-release/.github/actions/latest-wrangler@main
         with:
           package_name: ${{ inputs.package }}
           new_version: ${{ inputs.version_number }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-
-  build_and_push:
+  build-and-release:
     name: "Set up Docker image builder, build and push"
     runs-on: ubuntu-latest
-    needs: [version_metadata]
+    needs: [tags]
     steps:
+      - name: "[DEBUG] Log inputs"
+        shell: bash
+        run: |
+          echo Package: ${{ inputs.package }}
+          echo Version: ${{ inputs.version_number }}
+          echo Tags:    ${{ needs.tags.outputs.tags }}
+
       - name: "Set up Docker Buildx"
         uses: docker/setup-buildx-action@v3
-
-      - name: "Get docker build arg"
-        id: build_arg
-        run: |
-          BUILD_ARG_NAME=$(echo ${{ inputs.package }} | sed 's/\-/_/g')
-          if [[ $(echo "$version" | cut -d'.' -f2) > 7 ]]; then
-            BUILD_ARG_VALUE=$(echo ${{ inputs.package }})
-          else # for <= minor version 7, postgres lives inside core
-            BUILD_ARG_VALUE=$(echo ${{ inputs.package }} | sed 's/postgres/core/g')
-          fi
-          echo "name=$BUILD_ARG_NAME" >> $GITHUB_OUTPUT
-          echo "value=$BUILD_ARG_VALUE" >> $GITHUB_OUTPUT
 
       - name: "Log in to GHCR"
         uses: docker/login-action@v3
@@ -74,21 +75,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Log publishing configuration"
-        shell: bash
-        run: |
-          echo Package:          ${{ inputs.package }}
-          echo Version:          ${{ inputs.version_number }}
-          echo Tags:             ${{ needs.version_metadata.outputs.fully_qualified_tags }}
-          echo Build Arg Name:   ${{ steps.build_arg.outputs.name }}
-          echo Build Arg Value:  ${{ steps.build_arg.outputs.value }}
-
-      - name: "Build and push `${{ inputs.package }}`"
-        if: ${{ !inputs.test_run }}
+      - name: "Build `${{ inputs.package }}==${{ inputs.version_number }}`; push: ${{ !inputs.test_run }}"
         uses: docker/build-push-action@v5
         with:
-          file: docker/Dockerfile
-          push: True
+          file: ${{ inputs.dockerfile }}
+          push: ${{ !inputs.test_run }}
+          platforms: ${{ inputs.platforms }}
           target: ${{ inputs.package }}
-          build-args: ${{ steps.build_arg.outputs.name }}_ref=${{ steps.build_arg.outputs.value }}@v${{ inputs.version_number }}
-          tags: ${{ needs.version_metadata.outputs.fully_qualified_tags }}
+          build-args: commit_ref=v${{ inputs.version_number }}
+          tags: ${{ needs.tags.outputs.tags }}
