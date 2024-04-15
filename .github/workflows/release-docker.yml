@@ -19,11 +19,19 @@ on:
       package:
         description: "The package to release"
         type: string
-        required: true
+        default: ${{ github.event.repository.name }}
       version_number:
-        description: "The version number to release as a SemVer (e.g. 1.0.0b1, without `latest` or `v`)"
+        description: "The version number to release (e.g. 1.0.0b1, without `latest` or `v`)"
         type: string
         required: true
+      dockerfile:
+        description: "The path to the docker file from the repo root"
+        type: string
+        default: "docker/Dockerfile"
+      platforms:
+        description: "The platforms to publish as a comma-delimited string"
+        type: string
+        default: "linux/amd64"
       test_run:
         description: "Test run (don't publish)"
         type: boolean
@@ -70,9 +78,9 @@ jobs:
       - name: "Build `${{ inputs.package }}==${{ inputs.version_number }}`; push: ${{ !inputs.test_run }}"
         uses: docker/build-push-action@v5
         with:
-          file: docker/Dockerfile
+          file: ${{ inputs.dockerfile }}
           push: ${{ !inputs.test_run }}
-          platforms: linux/amd64
+          platforms: ${{ inputs.platforms }}
           target: ${{ inputs.package }}
           build-args: commit_ref=v${{ inputs.version_number }}
           tags: ${{ needs.tags.outputs.tags }}
