@@ -43,7 +43,7 @@ def _new_version_tags(new_version: Version, published_versions: List[Optional[Ve
         if patch.major == new_version.major and patch.minor == new_version.minor
     ]
 
-    # pre-releases don't get tagged with `latest`
+    # pre-releases don't get tagged with `latest` tags
     if new_version.is_prerelease:
         tags = [pinned]
 
@@ -55,7 +55,11 @@ def _new_version_tags(new_version: Version, published_versions: List[Optional[Ve
     elif new_version > max(published_versions):
         tags = [pinned, latest_minor, latest]
 
-    # this is not the overall latest release, but is still the latest minor release
+    # first minor releases are automatically the latest minor release
+    elif not published_patches:
+        tags = [pinned, latest_minor]
+
+    # this is a patch release that was released chronologically
     elif new_version > max(published_patches):
         tags = [pinned, latest_minor]
 
