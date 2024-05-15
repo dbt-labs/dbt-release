@@ -1,8 +1,9 @@
 import os
+import sys
+from typing import List, Optional
+
 from packaging.version import Version, parse
 import requests
-import sys
-from typing import List
 
 
 def main():
@@ -21,7 +22,7 @@ def _package_metadata(package_name: str, github_token: str) -> requests.Response
     return requests.get(url, auth=("", github_token))
 
 
-def _published_versions(response: requests.Response) -> List[Version]:
+def _published_versions(response: requests.Response) -> List[Optional[Version]]:
     package_metadata = response.json()
     return [
         parse(tag)
@@ -31,24 +32,40 @@ def _published_versions(response: requests.Response) -> List[Version]:
     ]
 
 
-def _new_version_tags(new_version: Version, published_versions: List[Version]) -> List[str]:
-    # the package version is always a tag
-    tags = [str(new_version)]
-
-    # pre-releases don't get tagged with `latest`
-    if new_version.is_prerelease:
-        return tags
-
-    if new_version > max(published_versions):
-        tags.append("latest")
+def _new_version_tags(new_version: Version, published_versions: List[Optional[Version]]) -> List[str]:
+    latest = "latest"
+    latest_minor = f"{new_version.major}.{new_version.minor}.latest"
+    pinned = str(new_version)
 
     published_patches = [
-        version
-        for version in published_versions
-        if version.major == new_version.major and version.minor == new_version.minor
+        patch
+        for patch in published_versions
+        if patch.major == new_version.major and patch.minor == new_version.minor
     ]
-    if new_version > max(published_patches):
-        tags.append(f"{new_version.major}.{new_version.minor}.latest")
+
+    # pre-releases don't get tagged with `latest` tags
+    if new_version.is_prerelease:
+        tags = [pinned]
+
+    # first releases are automatically the latest
+    elif not published_versions:
+        tags = [pinned, latest_minor, latest]
+
+    # the overall latest release is also the latest minor release
+    elif new_version > max(published_versions):
+        tags = [pinned, latest_minor, latest]
+
+    # first minor releases are automatically the latest minor release
+    elif not published_patches:
+        tags = [pinned, latest_minor]
+
+    # this is a patch release that was released chronologically
+    elif new_version > max(published_patches):
+        tags = [pinned, latest_minor]
+
+    # this is a patch release that was released off-cycle
+    else:
+        tags = [pinned]
 
     return tags
 
