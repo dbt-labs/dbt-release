@@ -299,7 +299,9 @@ jobs:
           aws configure set aws_secret_access_key ${{ secrets.AWS_ARCHIVE_SECRET_ACCESS_KEY }} --profile ${{ env.TEMP_PROFILE_NAME }}
           aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
           aws configure set output text --profile ${{ env.TEMP_PROFILE_NAME }}
-          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
+          aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} \
+          --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} \
+          --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
 
       - name: "Alter version in metadata of python package"
         run: |
@@ -308,32 +310,29 @@ jobs:
           version_in_file=$(grep -E 'version(: str)? =' "${version_file}" | cut -d '"' -f2)
 
           # check the latest build of adapter code in our archive
-          versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }} --format pypi --package dbt-${{ inputs.dbms_name }} --output json  --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
+          versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} \
+          --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} \
+          --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }} --format pypi \
+          --package dbt-${{ inputs.dbms_name }} --output json  \
+          --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
 
-          current_latest_version="$(echo "${versions_on_aws}" | sort -V | tail -n 1 )"
+          internal_release_version ="$(python .github/scripts/get_next_release_version.py \
+                                  --released_versions $versions_on_aws \
+                                  --target_version ${{ inputs.version_number }})"
 
           echo "[Debug] version_in_file: ${version_in_file}"
-          echo "[Debug] current_latest_version: ${current_latest_version}"
-
+          echo "[Debug] internal_release_version: ${internal_release_version}"
+          commit_sha="$(git rev-parse HEAD)"
+          
           echo ">>> Altering ${version_file}"
           # Ensure a build+xxx where xxx is an integer is always present in versioning
           # sed may be a no-op -- this is fine!
-          if [[ ${current_latest_version} =~ (.*build)([0-9]+)$ ]]; then
-              base="${BASH_REMATCH[1]}"
-              number="${BASH_REMATCH[2]}"
-              new_number=$((number + 1))
-              v="${base}${new_number}"
-              tee <<< "version = \"${v}\"" "${version_file}"
-              if [ -f "${setup_file}" ]; then
-                sed -i "s/^package_version = .*$/package_version = \"${v}\"/" "${setup_file}"
-              fi
-          else
-              v="${version_in_file}+build1"
-              tee <<< "version = \"${v}\"" "${version_file}"
-              if [ -f "${setup_file}" ]; then
-                sed -i "s/^package_version = .*$/package_version = \"${v}\"/" "${setup_file}"
-              fi
+          v="${internal_release_version}+${commit_sha}"
+          tee <<< "version = \"${v}\"" "${version_file}"
+          if [ -f "${setup_file}" ]; then
+            sed -i "s/^package_version = .*$/package_version = \"${v}\"/" "${setup_file}"
           fi
+      
 
       ################
       # Build package
