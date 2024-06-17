@@ -302,14 +302,13 @@ jobs:
           --package dbt-${{ inputs.dbms_name }} --output json  \
           --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
 
-          
           version_file="dbt/adapters/${{ inputs.dbms_name }}/__version__.py"
           setup_file="./setup.py"
           version_in_file=$(grep -E 'version(: str)? =' "${version_file}" | cut -d '"' -f2)
           echo "[Debug] version_in_file: ${version_in_file}"
           
           echo "CURRENT_PKG_VERSION=${version_in_file}" >> "$GITHUB_ENV"
-          echo "VERSIONS_PUBLISHED=${versions_published}" >> "$GITHUB_ENV"
+          echo "VERSIONS_PUBLISHED=$(echo "${versions[*]}"| tr '\n' ',')" >> "$GITHUB_ENV"
 
       - name: "Determine next internal release version"
         uses: "dbt-labs/dbt-release/.github/actions/next-internal-version@addPythonScriptComparison"

@@ -38,10 +38,10 @@ def increment_latest_version(released_versions: List[str], target_version: str) 
 
 def main():
     parser = argparse.ArgumentParser(description="Get the next release version")
-    parser.add_argument("--released_versions", nargs="+", help="List of released versions")
+    parser.add_argument("--released_versions", type=str, help="comma delimited list of released versions")
     parser.add_argument("--target_version", help="Target version to compare against")
     args = parser.parse_args()
-    released_versions = args.released_versions
+    released_versions = list(filter(None, args.released_versions.split(",")))
     target_version = args.target_version
     latest_version = increment_latest_version(released_versions, target_version)
     print(latest_version)
