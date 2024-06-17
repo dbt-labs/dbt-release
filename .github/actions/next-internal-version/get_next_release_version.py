@@ -18,7 +18,7 @@ def increment_latest_version(released_versions: List[str], target_version: str) 
     """
     target_version = Version.coerce(target_version)
     latest_version = target_version
-    latest_version.prerelease = ("build0",)
+    latest_version.prerelease = ("post0",)
     for version in released_versions:
         version = Version.coerce(version)
         if (
