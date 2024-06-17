@@ -21,10 +21,6 @@ on:
         description: "The warehouse name for the adapter."
         type: string
         required: true
-      version_number:
-        description: "The release version number (i.e. 1.0.0b1)"
-        type: string
-        required: true
       package_test_command:
         description: "Package test command"
         type: string
@@ -96,7 +92,6 @@ jobs:
       - name: "[DEBUG] Print Variables"
         run: |
           echo Warehouse name:                     ${{ inputs.dbms_name }}
-          echo The release version number:         ${{ inputs.version_number }}
           echo The release ref:                    ${{ inputs.ref }}
           echo Package test command:               ${{ inputs.package_test_command }}
 
@@ -105,17 +100,6 @@ jobs:
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref }}"
-
-      - name: "Validate patch version input against patch version of ref"
-        id: validate_version
-        run: |
-          version_in_file="$(grep -E 'version(: str)? =' "dbt/adapters/${{ inputs.dbms_name }}/__version__.py" | cut -d '"' -f2)"
-
-          if [[ "${{ inputs.version_number }}" != "${version_in_file}" ]]; then
-            message="Error: patch version input to this job ${{ inputs.version_number }} and version of code at input ref ${version_in_file} are not equal. Exiting..."
-            echo "::error $title::$message"
-            exit 1
-          fi
 
   run-unit-tests-tox:
     name: 'Unit Tests (Tox)'
@@ -303,35 +287,34 @@ jobs:
           --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} \
           --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
 
-      - name: "Alter version in metadata of python package"
+      - name: "Get version in package and versions published to internal pypi"
+        uses:
         run: |
           version_file="dbt/adapters/${{ inputs.dbms_name }}/__version__.py"
           setup_file="./setup.py"
           version_in_file=$(grep -E 'version(: str)? =' "${version_file}" | cut -d '"' -f2)
-
-          # check the latest build of adapter code in our archive
-          versions_on_aws="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} \
-          --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} \
-          --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }} --format pypi \
-          --package dbt-${{ inputs.dbms_name }} --output json  \
-          --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
-
-          internal_release_version ="$(python .github/scripts/get_next_release_version.py \
-                                  --released_versions $versions_on_aws \
-                                  --target_version ${{ inputs.version_number }})"
-
           echo "[Debug] version_in_file: ${version_in_file}"
-          echo "[Debug] internal_release_version: ${internal_release_version}"
-          commit_sha="$(git rev-parse HEAD)"
-          
-          echo ">>> Altering ${version_file}"
-          # Ensure a build+xxx where xxx is an integer is always present in versioning
-          # sed may be a no-op -- this is fine!
-          v="${internal_release_version}+${commit_sha}"
-          tee <<< "version = \"${v}\"" "${version_file}"
-          if [ -f "${setup_file}" ]; then
-            sed -i "s/^package_version = .*$/package_version = \"${v}\"/" "${setup_file}"
-          fi
+          echo "CURRENT_PKG_VERSION=${version_in_file}" >> "$GITHUB_ENV"
+
+      - name: "Determine next internal release version"
+        uses: dbt-labs/dbt-release/.github/actions/next-internal-version
+        with:
+          version_number: $CURRENT_PKG_VERSION
+
+      - name: "Update version in package and setup.py"
+        uses:
+          run: |
+            internal_release_version="${{ steps.get_next_internal_release_version.outputs.internal_release_version }}"
+            commit_sha="$(git rev-parse HEAD)"
+            
+            echo ">>> Altering ${version_file}"
+            # Ensure a build+xxx where xxx is an integer is always present in versioning
+            # sed may be a no-op -- this is fine!
+            v="${internal_release_version}+${commit_sha}"
+            tee <<< "version = \"${v}\"" "${version_file}"
+            if [ -f "${setup_file}" ]; then
+              sed -i "s/^package_version = .*$/package_version = \"${v}\"/" "${setup_file}"
+            fi
       
 
       ################
@@ -382,7 +365,7 @@ jobs:
         run: |
           check-wheel-contents dist/*.whl --ignore W007,W008
 
-      - name: "Upload Build Artifact - ${{ inputs.version_number }}"
+      - name: "Upload Build Artifact - ${{ steps.get_next_internal_release_version.outputs.internal_release_version }}"
         run: |
           twine upload --repository codeartifact dist/*
 

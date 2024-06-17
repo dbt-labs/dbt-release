@@ -1,0 +1,33 @@
+name: "Get Next Internal Release Version"
+description: "Determines if the published image should include `latest` tags"
+
+inputs:
+  version_number:
+    description: "SemVer of the package being published (i.e. 1.7.2, 1.8.0a1, etc.)"
+    required: true
+
+outputs:
+  internal_release_version:
+    value: ${{ steps.run_script.outputs.internal_release_version }}
+    description: "The internal release version to use for the next release."
+
+runs:
+  using: "composite"
+  steps:
+    - id: run_script
+      name: "Run Script"
+      shell: bash
+      run: |
+          
+          # check the latest build of adapter code in our archive
+          versions_published="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} \
+          --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} \
+          --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }} --format pypi \
+          --package dbt-${{ inputs.dbms_name }} --output json  \
+          --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
+          
+          internal_release_version="$(python .github/scripts/get_next_release_version.py \
+                                  --released_versions $versions_published \
+                                  --target_version ${{ inputs.version_number }})"
+          echo "[Debug] internal_release_version: ${internal_release_version}"
+          echo "internal_release_version=${internal_release_version}>>$GITHUB_OUTPUT"
