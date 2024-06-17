@@ -26,7 +26,7 @@ runs:
           --package dbt-${{ inputs.dbms_name }} --output json  \
           --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
           
-          internal_release_version="$(python .github/scripts/get_next_release_version.py \
+          internal_release_version="$(python .get_next_release_version.py \
                                   --released_versions $versions_published \
                                   --target_version ${{ inputs.version_number }})"
           echo "[Debug] internal_release_version: ${internal_release_version}"
