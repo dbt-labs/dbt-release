@@ -44,7 +44,7 @@ def main():
     released_versions = list(filter(None, args.released_versions.split(",")))
     target_version = args.target_version
     latest_version = increment_latest_version(released_versions, target_version)
-    print(latest_version)
+    print(f"{latest_version.major}.{latest_version.minor}.{latest_version.patch}{latest_version.prerelease[0]}")
 
 
 if __name__ == "__main__":
