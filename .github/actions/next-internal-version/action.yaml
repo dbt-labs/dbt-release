@@ -18,7 +18,7 @@ runs:
       name: "Run Script"
       shell: bash
       run: |          
-          internal_release_version="$(python .get_next_release_version.py \
+          internal_release_version="$(python ${{ github.action_path }}/get_next_release_version.py \
                                   --released_versions $versions_published \
                                   --target_version ${{ inputs.version_number }})"
           echo "[Debug] internal_release_version: ${internal_release_version}"
