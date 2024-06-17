@@ -303,7 +303,7 @@ jobs:
           echo "CURRENT_PKG_VERSION=${version_in_file}" >> "$GITHUB_ENV"
 
       - name: "Determine next internal release version"
-        uses: "dbt-labs/dbt-release/.github/actions/next-internal-version@main"
+        uses: "dbt-labs/dbt-release/.github/actions/next-internal-version@addPythonScriptComparison"
         with:
           version_number: $CURRENT_PKG_VERSION
 
