@@ -35,6 +35,11 @@ on:
         type: string
         default: "dbt-labs"
         required: false  # only needed by third party workflows
+      skip_tests:
+        description: "Should the tests be skipped? (default to false)"
+        type: boolean
+        required: false
+        default: false
 
 permissions: read-all
 
@@ -79,6 +84,8 @@ jobs:
         run: |
           # again, regexes are unquoted to avoid quoting side effects
           if [[ "${{ inputs.dbms_name }}" =~ ${{ env.ADAPTERS_THAT_SKIP_TESTS }} ]]; then
+            echo "skip_tests=true" >> $GITHUB_OUTPUT
+          elif ${{ inputs.skip_tests }}; then
             echo "skip_tests=true" >> $GITHUB_OUTPUT
           else
             echo "skip_tests=false" >> $GITHUB_OUTPUT
