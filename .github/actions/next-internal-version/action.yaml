@@ -17,15 +17,7 @@ runs:
     - id: run_script
       name: "Run Script"
       shell: bash
-      run: |
-          
-          # check the latest build of adapter code in our archive
-          versions_published="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} \
-          --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} \
-          --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }} --format pypi \
-          --package dbt-${{ inputs.dbms_name }} --output json  \
-          --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
-          
+      run: |          
           internal_release_version="$(python .get_next_release_version.py \
                                   --released_versions $versions_published \
                                   --target_version ${{ inputs.version_number }})"
