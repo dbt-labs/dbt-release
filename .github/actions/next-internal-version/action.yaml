@@ -26,4 +26,4 @@ runs:
                                   --released_versions ${{ inputs.versions_published }} \
                                   --target_version ${{ inputs.version_number }})"
           echo "[Debug] internal_release_version: ${internal_release_version}"
-          echo "internal_release_version=${internal_release_version}>>$GITHUB_OUTPUT"
+          echo "internal_release_version=${internal_release_version}">>$GITHUB_OUTPUT
