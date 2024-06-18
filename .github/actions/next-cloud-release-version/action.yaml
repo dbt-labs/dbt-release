@@ -1,0 +1,29 @@
+name: "Get Next Cloud Release Version"
+description: "Determines the release semver for the next release to dbt Cloud."
+
+inputs:
+  version_number:
+    description: "SemVer of the package being published (i.e. 1.7.2, 1.8.0a1, etc.)"
+    required: true
+  versions_published:
+    description: "Comma delimited list of versions that have been published."
+    required: true
+
+outputs:
+  internal_release_version:
+    value: ${{ steps.run_script.outputs.internal_release_version }}
+    description: "The internal release version to use for the next release."
+
+runs:
+  using: "composite"
+  steps:
+    - id: run_script
+      name: "Run Script"
+      shell: bash
+      run: |          
+          pip install semantic-version
+          internal_release_version="$(python ${{ github.action_path }}/get_next_release_version.py \
+                                  --released_versions ${{ inputs.versions_published }} \
+                                  --target_version ${{ inputs.version_number }})"
+          echo "[Debug] internal_release_version: ${internal_release_version}"
+          echo "internal_release_version=${internal_release_version}">>$GITHUB_OUTPUT
