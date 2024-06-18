@@ -1,12 +1,12 @@
 name: "Get Next Internal Release Version"
-description: "Determines if the published image should include `latest` tags"
+description: "Determines the internal release semver for the next release."
 
 inputs:
   version_number:
     description: "SemVer of the package being published (i.e. 1.7.2, 1.8.0a1, etc.)"
     required: true
   versions_published:
-    description: "SemVer of the package being published (i.e. 1.7.2, 1.8.0a1, etc.)"
+    description: "Comma delimited list of versions that have been published."
     required: true
 
 outputs:
