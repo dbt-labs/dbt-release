@@ -311,7 +311,7 @@ jobs:
           echo "VERSIONS_PUBLISHED=$(echo "${versions[*]}"| tr '\n' ',')" >> "$GITHUB_ENV"
           echo "VERSION_FILE=${version_file}" >> "$GITHUB_ENV"
 
-      - name: "Determine next internal release version"
+      - name: "Determine next Cloud release version"
         id: get_next_internal_release_version
         uses: "dbt-labs/dbt-release/.github/actions/next-internal-version@addPythonScriptComparison"
         with:
