@@ -1,5 +1,5 @@
-name: "Get Next Internal Release Version"
-description: "Determines the internal release semver for the next release."
+name: "Get Next Cloud Release Version"
+description: "Determines the release semver for the next release to dbt Cloud."
 
 inputs:
   version_number:
