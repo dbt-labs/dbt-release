@@ -13,6 +13,7 @@
 # Called by upstream internal-release.yml workflows that live in adapter repos
 
 name: "Internal Archive Release"
+run-name: "Cloud releasing ${{inputs.dbms_name}} off of ${{ inputs.ref }}"
 
 on:
   workflow_call:
