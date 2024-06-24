@@ -21,6 +21,10 @@ def increment_latest_version(released_versions: List[str], target_version: str) 
     latest_version.prerelease = ("post0",)
     for version in released_versions:
         version = Version.coerce(version)
+        # semantic_version does not handle build metadata, so we need to move it to the prerelease field
+        if not version.prerelease and version.build:
+            version.prerelease = version.build
+            version.build = []
         if (
                 version.major == latest_version.major
                 and version.minor == latest_version.minor
