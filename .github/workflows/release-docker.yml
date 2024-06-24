@@ -76,7 +76,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Build `${{ inputs.package }}==${{ inputs.version_number }}`; push: ${{ !inputs.test_run }}"
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           file: ${{ inputs.dockerfile }}
           push: ${{ !inputs.test_run }}
