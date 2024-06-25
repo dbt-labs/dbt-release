@@ -309,7 +309,7 @@ jobs:
           echo "[Debug] version_in_file: ${version_in_file}"
           
           echo "CURRENT_PKG_VERSION=${version_in_file}" >> "$GITHUB_ENV"
-          echo "VERSIONS_PUBLISHED=$(echo "${versions[*]}"| tr '\n' ',')" >> "$GITHUB_ENV"
+          echo "VERSIONS_PUBLISHED=$(echo "${versions_published[*]}"| tr '\n' ',')" >> "$GITHUB_ENV"
           echo "VERSION_FILE=${version_file}" >> "$GITHUB_ENV"
 
       - name: "Determine next Cloud release version"
