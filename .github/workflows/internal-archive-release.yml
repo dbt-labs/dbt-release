@@ -287,29 +287,23 @@ jobs:
 
       - name: "Authenticate with AWS"
         uses: aws-actions/configure-aws-credentials@v4
-        id: aws-signin
         with:
-          role-to-assume: arn:aws:iam:: #TODO
+          role-to-assume: arn:aws:iam::859831564954:role/cicd-oidc-code-artifacts
           aws-region: ${{ secrets.AWS_REGION }}
-          role-session-name: gha-internal-release-secrets-manager-${{ github.run_id }}
+          role-session-name: gha-internal-release-code-artifacts-${{ github.run_id }}
           role-duration-seconds: 900 # 15 minutes
-          output-credentials: true
 
       - name: "Configure AWS profile for upload"
         run: |
-          aws configure set aws_access_key_id ${{ steps.aws-signin.outputs.aws-access-key-id }} --profile ${{ env.TEMP_PROFILE_NAME }}
-          aws configure set aws_secret_access_key ${{ steps.aws-signin.outputs.aws-secret-access-key }} --profile ${{ env.TEMP_PROFILE_NAME }}
-          aws configure set region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
-          aws configure set output text --profile ${{ env.TEMP_PROFILE_NAME }}
           aws codeartifact login --tool twine --repository ${{ secrets.AWS_REPOSITORY }} \
               --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} \
-              --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }}
+              --region ${{ secrets.AWS_REGION }}
 
       - name: "Get version in package and versions published to internal pypi"
         run: |
           versions_published="$(aws codeartifact list-package-versions --repository ${{ secrets.AWS_REPOSITORY }} \
           --domain ${{ secrets.AWS_DOMAIN }} --domain-owner ${{ secrets.AWS_DOMAIN_OWNER }} \
-          --region ${{ secrets.AWS_REGION }} --profile ${{ env.TEMP_PROFILE_NAME }} --format pypi \
+          --region ${{ secrets.AWS_REGION }} --format pypi \
           --package dbt-${{ inputs.dbms_name }} --output json  \
           --query 'versions[*].version' | jq -r '.[]' | grep "^${{ inputs.version_number }}" || true )"  # suppress pipefail only here
 
