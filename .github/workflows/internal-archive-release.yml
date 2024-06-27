@@ -331,6 +331,7 @@ jobs:
           tee <<< "version = \"${v}\"" "${VERSION_FILE}"
           if [ -f "${setup_file}" ]; then
             sed -i "s/^package_version = .*$/package_version = \"${v}\"/" "${setup_file}"
+            sed -i '' '/dbt-core[>=~]=/d' "${setup_file}"
           fi
       
 
