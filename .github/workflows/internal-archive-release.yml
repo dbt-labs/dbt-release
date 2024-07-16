@@ -161,7 +161,7 @@ jobs:
         uses: dbt-labs/dbt-adapters/.github/actions/setup-hatch@main
 
       - name: "Run Tests using hatch"
-        run: hatch run unit-tests:all
+        run: hatch run unit-tests
 
   ####################
   # Integration Tests
