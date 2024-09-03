@@ -303,7 +303,7 @@ jobs:
         if: ${{ inputs.version_override != '' }}
         run: |
           version_file="dbt/adapters/${{ inputs.dbms_name }}/__version__.py"
-          echo "VERSION_FILE=${version_in_file}" >> "$GITHUB_ENV"
+          echo "VERSION_FILE=${version_file}" >> "$GITHUB_ENV"
           echo "CURRENT_PKG_VERSION=${{ inputs.version_override }}" >> "$GITHUB_ENV"
 
       - name: "Get version in package"
