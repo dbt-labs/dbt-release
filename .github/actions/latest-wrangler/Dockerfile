@@ -5,6 +5,5 @@ WORKDIR /app
 # We are installing a dependency here directly into our app source dir
 RUN pip install --target=/app requests packaging
 
-WORKDIR /app
 ENV PYTHONPATH /app
-CMD ["/app/main.py"]
+CMD ["python", "/app/main.py"]
