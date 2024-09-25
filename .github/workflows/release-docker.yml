@@ -47,7 +47,7 @@ jobs:
       - name: "Get the tags to publish"
         id: tags
         # this cannot be relative because this workflow is called from multiple repos
-        uses: dbt-labs/dbt-release/.github/actions/latest-wrangler@main
+        uses: dbt-labs/dbt-release/.github/actions/latest-wrangler@er/pin-container
         with:
           package_name: ${{ inputs.package }}
           new_version: ${{ inputs.version_number }}
