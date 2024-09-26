@@ -51,11 +51,11 @@ jobs:
       - name: "[DEBUG] Print Variables"
         run: |
           # WORKFLOW INPUTS
-          echo Status:              ${{ inputs.status }}
-          echo Notify when:         ${{ inputs.notify_when }}
-          echo Notification title:  ${{ inputs.notification_title }}
+          echo "Status:              ${{ inputs.status }}"
+          echo "Notify when:         ${{ inputs.notify_when }}"
+          echo "Notification title:  ${{ inputs.notification_title }}"
           # ENVIRONMENT VARIABLES
-          echo Notification prefix: ${{ env.NOTIFICATION_PREFIX }}
+          echo "Notification prefix: ${{ env.NOTIFICATION_PREFIX }}"
 
   slack-post-notification:
     runs-on: ubuntu-latest
