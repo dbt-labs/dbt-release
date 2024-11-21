@@ -345,6 +345,9 @@ jobs:
           tee <<< "version = \"${v}\"" "${VERSION_FILE}"
           if [ -f "${setup_file}" ]; then
             sed -i "s/^package_version = .*$/package_version = \"${v}\"/" "${setup_file}"
+            # Scrub any dependency specification from a package prefixed with "dbt-" 
+            # but preserve the package name, for example:
+            # "dbt-postgres>=0.19.0" -> "dbt-postgres"
             sed -i "s/\(dbt-[a-z]*\)\(.*[>=~@].*\)/\1\"/" "${setup_file}"
           fi
       
