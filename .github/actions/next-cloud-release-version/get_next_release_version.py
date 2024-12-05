@@ -52,7 +52,7 @@ def main():
     parser.add_argument("--released_versions", type=str, help="comma delimited list of released versions")
     parser.add_argument("--target_version", help="Target version to compare against")
     args = parser.parse_args()
-    released_versions = list(filter(None, args.released_versions.split(",")))
+    released_versions = list(filter(None, args.released_versions.split(","))) if args.released_versions else []
     target_version = args.target_version
     latest_version = increment_latest_version(released_versions, target_version)
     print(f"{latest_version.major}.{latest_version.minor}.{latest_version.patch}{latest_version.prerelease[0]}")
