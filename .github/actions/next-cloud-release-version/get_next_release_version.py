@@ -19,8 +19,15 @@ def increment_latest_version(released_versions: List[str], target_version: str) 
     target_version = Version.coerce(target_version)
     latest_version = target_version
     latest_version.prerelease = ("post0",)
+
+    # Function to extract the numeric part from prerelease tags like 'post01' or 'post2'
+    def extract_numeric_prerelease(prerelease: str) -> int:
+        match = re.match(r'(\D*)(\d+)', prerelease)  # Capture any non-digit prefix and the numeric part
+        return int(match.group(2)) if match else 0
+
     for version in released_versions:
         version = Version.coerce(version)
+
         # semantic_version does not handle build metadata, so we need to move it to the prerelease field
         if not version.prerelease and version.build:
             version.prerelease = version.build
@@ -29,7 +36,7 @@ def increment_latest_version(released_versions: List[str], target_version: str) 
                 version.major == latest_version.major
                 and version.minor == latest_version.minor
                 and version.patch == latest_version.patch
-                and version.prerelease > latest_version.prerelease
+                and extract_numeric_prerelease(version.prerelease[0]) > extract_numeric_prerelease(latest_version.prerelease[0])
         ):
             latest_version = version
 
