@@ -20,8 +20,10 @@ def increment_latest_version(released_versions: List[str], target_version: str) 
     latest_version = target_version
     latest_version.prerelease = ("post0",)
 
-    # Function to extract the numeric part from prerelease tags like 'post01' or 'post2'
-    def extract_numeric_prerelease(prerelease: str) -> int:
+    # Function to extract the numeric part from prerelease tags, even malformed ones
+    # like 'post01' or 'post2' if they end up in the archive
+    def get_post_number(version: str) -> int:
+        prerelease = version.prerelease[0]
         match = re.match(r'(\D*)(\d+)', prerelease)  # Capture any non-digit prefix and the numeric part
         return int(match.group(2)) if match else 0
 
@@ -36,7 +38,7 @@ def increment_latest_version(released_versions: List[str], target_version: str) 
                 version.major == latest_version.major
                 and version.minor == latest_version.minor
                 and version.patch == latest_version.patch
-                and extract_numeric_prerelease(version.prerelease[0]) > extract_numeric_prerelease(latest_version.prerelease[0])
+                and get_post_number(version) > get_post_number(latest_version)
         ):
             latest_version = version
 
