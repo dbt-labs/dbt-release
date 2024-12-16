@@ -366,7 +366,8 @@ jobs:
             scripts/build-dist.sh
           else
             # Fallback onto to basic command
-            python setup.py sdist bdist_wheel
+            python -m pip install build
+            python -m build 
           fi
 
       #
