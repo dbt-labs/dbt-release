@@ -366,6 +366,7 @@ jobs:
             scripts/build-dist.sh
           else
             # Fallback onto to basic command
+            python -m pip install build
             python -m build 
           fi
 
