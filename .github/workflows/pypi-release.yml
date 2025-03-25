@@ -133,7 +133,8 @@ jobs:
       needs.check-package-exists-pypi.outputs.exists == 'false' &&
       inputs.test_run == true
 
-    environment: PypiTest
+    environment:
+      name: PypiTest
 
     steps:
       - name: "Download Build Artifact - ${{ inputs.version_number }}"
@@ -143,10 +144,11 @@ jobs:
           path: .
 
       - name: "Publish ${{ needs.sanitize-package-name.outputs.name }} v${{ inputs.version_number }} To Test PyPI"
-        uses: pypa/gh-action-pypi-publish@v1.8.5
+        uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/
+          attestations: false
 
   prod-pypi-release:
     runs-on: ubuntu-latest
@@ -155,7 +157,8 @@ jobs:
       needs.check-package-exists-pypi.outputs.exists == 'false' &&
       inputs.test_run == false
 
-    environment: PypiProd
+    environment:
+      name: PypiProd
 
     steps:
       - name: "Download Build Artifact - ${{ inputs.version_number }}"
@@ -165,9 +168,10 @@ jobs:
           path: .
 
       - name: "Publish ${{ needs.sanitize-package-name.outputs.name }} v${{ inputs.version_number }} To PyPI"
-        uses: pypa/gh-action-pypi-publish@v1.8.5
+        uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+          attestations: false
 
   validate-package-available-pypi:
     runs-on: ubuntu-latest
