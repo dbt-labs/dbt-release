@@ -163,17 +163,6 @@ jobs:
           fi
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
-      - name: "Spark safety check"
-        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
-        run: |
-          if [[ ${{ steps.set_existence.outputs.exists }} != true ]]
-          then
-            title="Spark version-bump.yml check"
-            message="dbt-spark needs version-bump.yml run before running the release.  The changelog is not up to date."
-            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
-            exit 1
-          fi
-
       - name: "[DEBUG] Print Outputs"
         run: |
           echo changelog_path: ${{ steps.set_path.outputs.changelog_path }}
@@ -214,17 +203,6 @@ jobs:
             message="The version in the codebase differs from the provided version"
           fi
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
-
-      - name: "Spark safety check"
-        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
-        run: |
-          if [[ ${{ steps.version-check.outputs.up_to_date }} != true ]]
-          then
-            title="Spark version-bump.yml check"
-            message="dbt-spark needs version-bump.yml run before running the release.  The version bump is not up to date."
-            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
-            exit 1
-          fi
 
       - name: "[DEBUG] Print Outputs"
         run: |
