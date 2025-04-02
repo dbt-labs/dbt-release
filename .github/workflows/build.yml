@@ -64,6 +64,14 @@ on:
         required: false
         default: false
         type: boolean
+    #  still define these secrets to avoid breaking changes in calling workflows
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        description: "deprecated - DO NOT USE"
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        description: "deprecated - DO NOT USE"
+        required: false
 
 
 permissions:
