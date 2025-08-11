@@ -138,7 +138,7 @@ jobs:
 
     steps:
       - name: "Download Build Artifact - ${{ inputs.version_number }}"
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ inputs.version_number }}
           path: .
@@ -162,7 +162,7 @@ jobs:
 
     steps:
       - name: "Download Build Artifact - ${{ inputs.version_number }}"
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ inputs.version_number }}
           path: .
