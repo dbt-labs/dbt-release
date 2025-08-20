@@ -117,7 +117,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.sha }}
 
@@ -179,7 +179,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.sha }}
 
@@ -244,7 +244,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.sha }}
 
@@ -284,7 +284,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
@@ -426,7 +426,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
@@ -479,7 +479,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
@@ -563,7 +563,7 @@ jobs:
           echo needs.audit-version-in-code.outputs.up_to_date: ${{ needs.audit-version-in-code.outputs.up_to_date }}
 
       - name: "Checkout Repo ${{ github.repository }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "Merge Changes Into ${{ inputs.target_branch }}"
         uses: everlytic/branch-merge@1.1.5
@@ -624,7 +624,7 @@ jobs:
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "Checkout Resolved Branch - ${{ steps.resolve_branch.outputs.target_branch }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ steps.resolve_branch.outputs.target_branch }}
 
