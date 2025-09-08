@@ -196,7 +196,7 @@ jobs:
           fi
 
       - name: "Setup Environment Variables - Secrets Context"
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         id: check-env
         with:
           result-encoding: string
