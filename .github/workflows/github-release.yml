@@ -152,7 +152,7 @@ jobs:
 
     steps:
       - name: "Check If Release Already Exists For Commit"
-        uses: cardinalby/git-get-release-action@1.2.5
+        uses: cardinalby/git-get-release-action@5172c3a026600b1d459b117738c605fabc9e4e44 # cardinalby/git-get-release-action@1.2.5
         id: check_release_commit
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -199,7 +199,7 @@ jobs:
 
     steps:
       - name: "Download Artifact ${{ inputs.version_number }}"
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # actions/download-artifact@v4
         with:
           name: ${{ inputs.version_number }}
           path: .

@@ -117,7 +117,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           ref: ${{ inputs.sha }}
 
@@ -179,7 +179,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           ref: ${{ inputs.sha }}
 
@@ -244,7 +244,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           ref: ${{ inputs.sha }}
 
@@ -284,7 +284,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
@@ -357,7 +357,7 @@ jobs:
           fi
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
@@ -426,7 +426,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
@@ -437,7 +437,7 @@ jobs:
           sudo apt-get install libsasl2-dev
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
@@ -479,7 +479,7 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.repository }} Branch ${{ needs.create-temp-branch.outputs.branch_name }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           ref: ${{ needs.create-temp-branch.outputs.branch_name }}
 
@@ -487,7 +487,7 @@ jobs:
         run: source ./${{ inputs.env_setup_script_path }}
 
       - name: "Setup Environment Variables - Secrets Context"
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # actions/github-script@v7
         id: check-env
         with:
           result-encoding: string
@@ -519,7 +519,7 @@ jobs:
           sudo apt-get install libsasl2-dev
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
@@ -563,10 +563,10 @@ jobs:
           echo needs.audit-version-in-code.outputs.up_to_date: ${{ needs.audit-version-in-code.outputs.up_to_date }}
 
       - name: "Checkout Repo ${{ github.repository }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
 
       - name: "Merge Changes Into ${{ inputs.target_branch }}"
-        uses: everlytic/branch-merge@1.1.5
+        uses: everlytic/branch-merge@c4a244dc23143f824ae6c022a10732566cb8e973 # everlytic/branch-merge@1.1.5
         with:
           source_ref: ${{ needs.create-temp-branch.outputs.branch_name }}
           target_branch: ${{ inputs.target_branch }}
@@ -624,7 +624,7 @@ jobs:
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "Checkout Resolved Branch - ${{ steps.resolve_branch.outputs.target_branch }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           ref: ${{ steps.resolve_branch.outputs.target_branch }}
 
