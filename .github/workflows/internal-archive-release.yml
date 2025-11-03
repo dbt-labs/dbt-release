@@ -108,7 +108,7 @@ jobs:
           echo Package test command:               ${{ inputs.package_test_command }}
 
       - name: "Checkout provided ref, default to branch main"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref }}"
@@ -126,7 +126,7 @@ jobs:
 
     steps:
       - name: "Checkout provided ref, default to branch main"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref }}"
@@ -156,7 +156,7 @@ jobs:
 
     steps:
       - name: "Checkout provided ref, default to branch main"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref }}"
@@ -184,7 +184,7 @@ jobs:
 
     steps:
       - name: "Checkout provided ref, default to branch main"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref }}"
@@ -273,7 +273,7 @@ jobs:
 
     steps:
       - name: "Checkout provided ref, default to branch main"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref }}"
