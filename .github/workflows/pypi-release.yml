@@ -138,13 +138,13 @@ jobs:
 
     steps:
       - name: "Download Build Artifact - ${{ inputs.version_number }}"
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # actions/download-artifact@v4
         with:
           name: ${{ inputs.version_number }}
           path: .
 
       - name: "Publish ${{ needs.sanitize-package-name.outputs.name }} v${{ inputs.version_number }} To Test PyPI"
-        uses: pypa/gh-action-pypi-publish@v1.12.4
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # pypa/gh-action-pypi-publish@v1.12.4
         with:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
@@ -162,13 +162,13 @@ jobs:
 
     steps:
       - name: "Download Build Artifact - ${{ inputs.version_number }}"
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # actions/download-artifact@v4
         with:
           name: ${{ inputs.version_number }}
           path: .
 
       - name: "Publish ${{ needs.sanitize-package-name.outputs.name }} v${{ inputs.version_number }} To PyPI"
-        uses: pypa/gh-action-pypi-publish@v1.12.4
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # pypa/gh-action-pypi-publish@v1.12.4
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           attestations: false

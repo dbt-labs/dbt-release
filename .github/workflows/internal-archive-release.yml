@@ -108,7 +108,7 @@ jobs:
           echo Package test command:               ${{ inputs.package_test_command }}
 
       - name: "Checkout provided ref, default to branch main"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref }}"
@@ -126,13 +126,13 @@ jobs:
 
     steps:
       - name: "Checkout provided ref, default to branch main"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref }}"
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
@@ -156,7 +156,7 @@ jobs:
 
     steps:
       - name: "Checkout provided ref, default to branch main"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref }}"
@@ -184,7 +184,7 @@ jobs:
 
     steps:
       - name: "Checkout provided ref, default to branch main"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref }}"
@@ -196,7 +196,7 @@ jobs:
           fi
 
       - name: "Setup Environment Variables - Secrets Context"
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # actions/github-script@v7
         id: check-env
         with:
           result-encoding: string
@@ -223,7 +223,7 @@ jobs:
 
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
@@ -273,13 +273,13 @@ jobs:
 
     steps:
       - name: "Checkout provided ref, default to branch main"
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
           repository: "${{ inputs.org }}/dbt-${{ inputs.dbms_name }}"
           ref: "${{ inputs.ref }}"
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
