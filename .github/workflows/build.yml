@@ -65,7 +65,7 @@ on:
         default: false
         type: boolean
       use_hatch:
-        required: true
+        required: false
         type: boolean
         description: "Use hatch for building packages"
         default: false # default to false for backwards compatibility
