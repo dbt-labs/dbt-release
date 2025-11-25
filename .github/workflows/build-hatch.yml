@@ -47,21 +47,6 @@ env:
   NOTIFICATION_PREFIX: "[Build Hatch]"
 
 jobs:
-  log-inputs:
-    runs-on: ubuntu-latest
-    steps:
-      - name: "[DEBUG] Print Variables"
-        run: |
-          # WORKFLOW INPUTS
-          echo The last commit sha in the release: ${{ inputs.sha }}
-          echo The release version number:         ${{ inputs.version_number }}
-          echo The changelog path:                 ${{ inputs.changelog_path }}
-          echo The hatch directory:                ${{ inputs.hatch_directory }}
-          # ENVIRONMENT VARIABLES
-          echo GitHub artifact retention days:     ${{ env.ARTIFACT_RETENTION_DAYS }}
-          echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
-          echo Notification prefix:                ${{ env.NOTIFICATION_PREFIX }}
-
   unit:
     name: Unit Test
     runs-on: ubuntu-latest
@@ -117,7 +102,12 @@ jobs:
 
       - name: "Check Wheel Distribution Descriptions"
         working-directory: ${{ inputs.hatch_directory }}
-        run: hatch check --all
+        run: hatch run build:check-all
+
+      - name: "Copy Distributions to Root"
+        run: |
+          mkdir -p ./dist
+          cp -r ${{ inputs.hatch_directory }}/dist/* ./dist/
 
       - name: "Upload Build Artifact - ${{ inputs.version_number }}"
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4

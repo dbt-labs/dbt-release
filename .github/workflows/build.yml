@@ -29,7 +29,6 @@
 #
 #  1. Make sure the sha has a changelog entry for this version and the version bump has been completed.
 
-
 name: Build
 
 on:
@@ -49,7 +48,7 @@ on:
         required: true
         type: string
       build_script_path:
-        required: false  # only required for legacy build path
+        required: false # only required for legacy build path
         default: "scripts/build-dist.sh"
         type: string
       package_test_command:
@@ -69,7 +68,6 @@ on:
         type: boolean
         description: "Use hatch for building packages"
         default: false # default to false for backwards compatibility
-
 
 permissions:
   contents: write
@@ -131,7 +129,7 @@ jobs:
           fi
 
       - name: "Check Current Version In Code"
-        id: set_status
+        if: inputs.use_hatch == false
         run: |
           title="Check Current Version In Code"
           if grep -Fxq "current_version = ${{ inputs.version_number }}" .bumpversion.cfg
@@ -140,6 +138,30 @@ jobs:
             echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
           else
             message="Version not set to ${{ inputs.version_number }}. The version bump workflow must be complete before running this workflow."
+            git status
+            echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+            exit 1
+          fi
+
+      - name: "Install Hatch"
+        if: inputs.use_hatch == true
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip install hatch
+
+      - name: "Check Current Version In Code [hatch]"
+        if: inputs.use_hatch == true
+        working-directory: ${{ inputs.hatch_directory }}
+        run: |
+          title="Check Current Version In Code [hatch]"
+          current_version=$(hatch version)
+          echo "Current version: $current_version"
+          if [ "$current_version" = "${{ inputs.version_number }}" ]
+          then
+            message="Version set to ${{ inputs.version_number }}."
+            echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
+          else
+            message="Version not set to ${{ inputs.version_number }}. Current version is $current_version. The version bump workflow must be complete before running this workflow."
             git status
             echo "::error title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
             exit 1
