@@ -1,0 +1,123 @@
+# **what?**
+# Build release artifacts using hatch tooling
+#
+# Expected build artifact layout:
+#
+# ├── dist
+# │   ├── dbt-*.tar.gz
+# │   ├── dbt-*.whl
+# └── <release_notes>.md
+#
+#
+# Inputs:
+#  sha:                  The commit to attach to this release
+#  version_number:       The release version number (i.e. 1.0.0b1, 1.2.3rc2, 1.0.0)
+#  changelog_path:       Path to the changelog file for release notes
+#
+# **why?**
+# Reusable and consistent build process.
+#
+# **when?**
+# Called in build.yml workflow when use_hatch is true
+
+name: Build - Hatch
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        required: true
+        type: string
+      version_number:
+        required: true
+        type: string
+      changelog_path:
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  ARTIFACT_RETENTION_DAYS: 2
+  PYTHON_TARGET_VERSION: "3.10"
+  NOTIFICATION_PREFIX: "[Build Hatch]"
+
+jobs:
+  log-inputs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "[DEBUG] Print Variables"
+        run: |
+          # WORKFLOW INPUTS
+          echo The last commit sha in the release: ${{ inputs.sha }}
+          echo The release version number:         ${{ inputs.version_number }}
+          echo The changelog path:                 ${{ inputs.changelog_path }}
+          # ENVIRONMENT VARIABLES
+          echo GitHub artifact retention days:     ${{ env.ARTIFACT_RETENTION_DAYS }}
+          echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
+          echo Notification prefix:                ${{ env.NOTIFICATION_PREFIX }}
+
+  unit:
+    name: Unit Test
+    runs-on: ubuntu-latest
+
+    env:
+      TOXENV: "unit"
+
+    steps:
+      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.sha }}
+
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
+
+      - name: "Install Hatch"
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip install hatch
+
+      - name: "Run Unit Tests"
+        run: hatch run unit-tests
+
+  build-packages:
+    runs-on: ubuntu-latest
+    needs: [unit]
+
+    steps:
+      - name: "Checkout Commit - ${{ inputs.sha }}"
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.sha }}
+
+      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_TARGET_VERSION }}
+
+      - name: "Install Python Dependencies"
+        run: |
+          python -m pip install --user --upgrade pip
+          python -m pip install hatch
+
+      - name: "Build Distributions"
+        run: hatch build
+
+      - name: "Check Wheel Distribution Descriptions"
+        run: hatch check --all
+
+      - name: "Upload Build Artifact - ${{ inputs.version_number }}"
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.version_number }}
+          path: |
+            ${{ inputs.changelog_path }}
+            ./dist/
+            !dist/dbt-${{ inputs.version_number }}.tar.gz
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}

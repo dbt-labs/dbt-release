@@ -64,6 +64,11 @@ on:
         required: false
         default: false
         type: boolean
+      use_hatch:
+        required: true
+        type: boolean
+        description: "Use hatch for building packages"
+        default: false # default to false for backwards compatibility
     #  still define these secrets to avoid breaking changes in calling workflows
     secrets:
       AWS_ACCESS_KEY_ID:
@@ -93,6 +98,7 @@ jobs:
           echo The release version number:         ${{ inputs.version_number }}
           echo The changelog path:                 ${{ inputs.changelog_path }}
           echo The build script path:              ${{ inputs.build_script_path }}
+          echo Use hatch:                          ${{ inputs.use_hatch }}
           # this field is still an input but it's not used anywhere
           # leaving it in to not have to modify all the dependent workflows
           echo The s3 bucket name:                 ${{ inputs.s3_bucket_name }}
@@ -149,91 +155,29 @@ jobs:
             exit 1
           fi
 
-  unit:
-    name: Unit Test
-    runs-on: ubuntu-latest
+  build-packages-legacy:
+    if: inputs.use_hatch == false
     needs: [audit-version-changelog]
+    uses: ./.github/workflows/build-legacy.yml
+    with:
+      sha: ${{ inputs.sha }}
+      version_number: ${{ inputs.version_number }}
+      changelog_path: ${{ inputs.changelog_path }}
+      build_script_path: ${{ inputs.build_script_path }}
 
-    env:
-      TOXENV: "unit"
-
-    steps:
-      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
-        with:
-          persist-credentials: false
-          ref: ${{ inputs.sha }}
-
-      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_TARGET_VERSION }}
-
-      - name: "Install Spark Dependencies"
-        if: ${{ contains(github.repository, 'dbt-labs/dbt-spark') }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install libsasl2-dev
-
-      - name: "Install Python Dependencies"
-        run: |
-          python -m pip install --user --upgrade pip
-          python -m pip install tox
-          python -m pip --version
-          python -m tox --version
-
-      - name: "Run Tox"
-        run: tox
-
-  build-packages:
-    runs-on: ubuntu-latest
-    needs: [unit]
-
-    steps:
-      - name: "Checkout Commit - ${{ inputs.sha }}"
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
-        with:
-          persist-credentials: false
-          ref: ${{ inputs.sha }}
-
-      - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_TARGET_VERSION }}
-
-      - name: "Install Python Dependencies"
-        run: |
-          python -m pip install --user --upgrade pip
-          python -m pip install --upgrade setuptools wheel twine check-wheel-contents
-          python -m pip --version
-
-      - name: "Build Distributions - ./${{ inputs.build_script_path }}"
-        run: ./${{ inputs.build_script_path }}
-
-      - name: "[DEBUG] Show Distributions"
-        run: ls -lh dist/
-
-      - name: "Check Distribution Descriptions"
-        run: |
-          twine check dist/*
-
-      - name: "[DEBUG] Check Wheel Contents"
-        run: |
-          check-wheel-contents dist/*.whl --ignore W007,W008
-
-      - name: "Upload Build Artifact - ${{ inputs.version_number }}"
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.version_number }}
-          path: |
-            ${{ inputs.changelog_path }}
-            ./dist/
-            !dist/dbt-${{ inputs.version_number }}.tar.gz
-          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+  build-packages-hatch:
+    if: inputs.use_hatch == true
+    needs: [audit-version-changelog]
+    uses: ./.github/workflows/build-hatch.yml
+    with:
+      sha: ${{ inputs.sha }}
+      version_number: ${{ inputs.version_number }}
+      changelog_path: ${{ inputs.changelog_path }}
 
   test-build:
     runs-on: ubuntu-latest
-    needs: [build-packages]
+    needs: [build-packages-legacy, build-packages-hatch]
+    if: always() && (needs.build-packages-legacy.result == success() || needs.build-packages-hatch.result == success())
 
     steps:
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"
