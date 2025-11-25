@@ -18,6 +18,9 @@ on:
       version_number:
         required: true
         type: string
+      hatch_directory:
+        required: true
+        type: string
       env_setup_script_path:
         required: false
         type: string
@@ -140,6 +143,7 @@ jobs:
 
       - name: "Bump Version To ${{ inputs.version_number }}"
         if: inputs.needs_version_update == 'true'
+        working-directory: ${{ inputs.hatch_directory }}
         run: |
           hatch version ${{ inputs.version_number }}
           git status
@@ -153,12 +157,12 @@ jobs:
 
       - name: "Remove Trailing Whitespace Via Pre-commit"
         run: |
-          hatch lint --files .bumpversion.cfg CHANGELOG.md .changes/*
+          pre-commit run trailing-whitespace --files .bumpversion.cfg CHANGELOG.md .changes/* || true
           git status
 
       - name: "Removing Extra Newlines Via Pre-commit"
         run: |
-          hatch lint --files .bumpversion.cfg CHANGELOG.md .changes/*
+          pre-commit run end-of-file-fixer --files .bumpversion.cfg CHANGELOG.md .changes/* || true
           git status
 
       - name: "Commit & Push Changes"
@@ -196,6 +200,7 @@ jobs:
           python -m pip install hatch
 
       - name: "Run Unit Tests"
+        working-directory: ${{ inputs.hatch_directory }}
         run: hatch run unit-tests
 
   run-integration-tests:
@@ -262,9 +267,15 @@ jobs:
           python -m pip install --user --upgrade pip
           python -m pip install hatch
 
-      - name: "Set Up Postgres"
+      - name: "Set Up Postgres (dbt-core)"
+        if: ${{ contains(github.repository, 'dbt-labs/dbt-core') }}
         run: |
-          hatch run setup-db
+          ./test/setup_db.sh
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGPASSWORD: password
 
       - name: "Run tests"
+        working-directory: ${{ inputs.hatch_directory }}
         run: hatch run integration-tests

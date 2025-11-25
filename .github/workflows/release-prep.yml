@@ -27,9 +27,6 @@ name: Version Bump and Changelog Generation
 on:
   workflow_call:
     inputs:
-      sha:
-        required: true
-        type: string
       version_number:
         required: true
         type: string
@@ -40,6 +37,10 @@ on:
         required: false
         type: string
         default: ""
+      hatch_directory:
+        required: false
+        type: string
+        default: "core"
       test_run:
         required: false
         default: true
@@ -86,7 +87,6 @@ jobs:
       - name: "[DEBUG] Print Variables"
         run: |
           # WORKFLOW INPUTS
-          echo The last commit sha in the release:   ${{ inputs.sha }}
           echo The release version number:           ${{ inputs.version_number }}
           echo The branch that we will release from: ${{ inputs.target_branch }}
           echo Test run:                             ${{ inputs.test_run }}
@@ -100,7 +100,6 @@ jobs:
     name: "Run common setup jobs"
     uses: ./.github/workflows/release-prep-base.yml
     with:
-      sha: ${{ inputs.sha }}
       version_number: ${{ inputs.version_number }}
       target_branch: ${{ inputs.target_branch }}
       test_run: ${{ inputs.test_run }}
@@ -134,6 +133,7 @@ jobs:
     with:
       branch_name: ${{ needs.run-common-setup.outputs.branch_name }}
       version_number: ${{ inputs.version_number }}
+      hatch_directory: ${{ inputs.hatch_directory }}
       env_setup_script_path: ${{ inputs.env_setup_script_path }}
       changelog_exists: ${{ needs.run-common-setup.outputs.changelog_exists }}
       needs_version_update: ${{ needs.run-common-setup.outputs.needs_version_update }}

@@ -95,8 +95,6 @@ To use workflows inside other workflows, you can use the `main` branch or specif
       sha: ${{ needs.bump-version-generate-changelog.outputs.final_sha }}
       version_number: ${{ inputs.version_number }}
       changelog_path: ${{ needs.bump-version-generate-changelog.outputs.changelog_path }}
-      build_script_path: ${{ inputs.build_script_path }}
-      s3_bucket_name: ${{ inputs.s3_bucket_name }}
       package_test_command: ${{ inputs.package_test_command }}
       test_run: ${{ inputs.test_run }}
       nightly_release: ${{ inputs.nightly_release }}

@@ -2,7 +2,6 @@
 # Common setup jobs for release preparation.
 #
 # Inputs:
-#  sha:                   The commit to attach to this release
 #  version_number:        The release version number (i.e. 1.0.0b1, 1.2.3rc2, 1.0.0)
 #  target_branch:         The branch that we will release from
 #  test_run:              Test run (The temp branch will be used for release)
@@ -28,9 +27,6 @@ name: Release Prep - Common Setup
 on:
   workflow_call:
     inputs:
-      sha:
-        required: true
-        type: string
       version_number:
         required: true
         type: string
@@ -95,10 +91,10 @@ jobs:
       is_prerelease: ${{ steps.semver.outputs.is-pre-release }}
 
     steps:
-      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
+      - name: "Checkout ${{ github.repository }} Branch ${{ inputs.target_branch }}"
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.target_branch }}
 
       - name: "Audit Version And Parse Into Parts"
         id: semver
@@ -157,10 +153,10 @@ jobs:
       needs_version_update: ${{ steps.version-check.outputs.needs_version_update }}
 
     steps:
-      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
+      - name: "Checkout ${{ github.repository }} Branch ${{ inputs.target_branch }}"
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.target_branch }}
 
       - name: "Check Current Version In Code"
         id: version-check
@@ -222,10 +218,10 @@ jobs:
       branch_name: ${{ steps.variables.outputs.branch_name }}
 
     steps:
-      - name: "Checkout ${{ github.repository }} Commit ${{ inputs.sha }}"
+      - name: "Checkout ${{ github.repository }} Branch ${{ inputs.target_branch }}"
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # actions/checkout@v4
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ inputs.target_branch }}
 
       - name: "Generate Branch Name"
         id: variables

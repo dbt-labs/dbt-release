@@ -77,10 +77,10 @@ Inputs:
 | `version_number`       | The release version number (i.e. 1.0.0b1, 1.2.3rc2, 1.0.0) |
 | `changelog_path`       | Path to the changelog file for release notes               |
 | `build_script_path`    | Path to the build script                                   |
-| `s3_bucket_name`       | AWS S3 bucket name                                         |
 | `package_test_command` | Command to use to check package runs                       |
 | `test_run`             | Test run (Bucket to upload the artifact)                   |
 | `nightly_release`      | Identifier that this is nightly release                    |
+| `use_hatch`            | If hatch should be sued as build tooling                   |
 
 ### Build artifact
 
@@ -91,12 +91,6 @@ Expected build artifact layout:
 │   ├── dbt-*.tar.gz
 │   ├── dbt-*.whl
 └── <release_notes>.md
-```
-
-Build artifacts get stored in S3 in a bucket with the following directory structure:
-
-```console
-"s3://<s3_bucket>/<org>/<repo>/<artifact_folder>/<version>/<commit>/"
 ```
 
 `<artifact_folder>` - resolves based on `test_run` and `nightly_release` inputs:

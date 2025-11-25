@@ -161,15 +161,13 @@ jobs:
           echo "::notice title=${{ env.NOTIFICATION_PREFIX }}: $title::$message"
 
       - name: "Remove Trailing Whitespace Via Pre-commit"
-        continue-on-error: true
         run: |
-          pre-commit run trailing-whitespace --files .bumpversion.cfg CHANGELOG.md .changes/*
+          pre-commit run trailing-whitespace --files .bumpversion.cfg CHANGELOG.md .changes/* || true
           git status
 
       - name: "Removing Extra Newlines Via Pre-commit"
-        continue-on-error: true
         run: |
-          pre-commit run end-of-file-fixer --files .bumpversion.cfg CHANGELOG.md .changes/*
+          pre-commit run end-of-file-fixer --files .bumpversion.cfg CHANGELOG.md .changes/* || true
           git status
 
       - name: "Commit & Push Changes"
@@ -276,7 +274,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
-      - name: "Set Up Postgres (Linux)"
+      - name: "Set Up Postgres (dbt-core)"
         if: ${{ contains(github.repository, 'dbt-labs/dbt-core') }}
         run: |
           ./test/setup_db.sh
