@@ -80,7 +80,7 @@ Inputs:
 | `package_test_command` | Command to use to check package runs                       |
 | `test_run`             | Test run (Bucket to upload the artifact)                   |
 | `nightly_release`      | Identifier that this is nightly release                    |
-| `use_hatch`            | If hatch should be sued as build tooling                   |
+| `use_hatch`            | If hatch should be used as build tooling                   |
 
 ### Build artifact
 
