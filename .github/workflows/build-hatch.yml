@@ -70,7 +70,7 @@ jobs:
 
       - name: "Run Unit Tests"
         working-directory: ${{ inputs.hatch_directory }}
-        run: hatch run unit-tests
+        run: hatch -v run unit-tests
 
   build-packages:
     runs-on: ubuntu-latest
@@ -95,11 +95,11 @@ jobs:
 
       - name: "Build Distributions"
         working-directory: ${{ inputs.hatch_directory }}
-        run: hatch build
+        run: hatch -v build
 
       - name: "Check Wheel Distribution Descriptions"
         working-directory: ${{ inputs.hatch_directory }}
-        run: hatch run build:check-all
+        run: hatch -v run build:check-all
 
       - name: "Copy Distributions to Root"
         run: |

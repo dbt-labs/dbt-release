@@ -145,7 +145,7 @@ jobs:
         if: inputs.needs_version_update == 'true'
         working-directory: ${{ inputs.hatch_directory }}
         run: |
-          hatch version ${{ inputs.version_number }}
+          hatch -v version ${{ inputs.version_number }}
           git status
 
       - name: "[Notification] Bump Version To ${{ inputs.version_number }}"
@@ -201,7 +201,7 @@ jobs:
 
       - name: "Run Unit Tests"
         working-directory: ${{ inputs.hatch_directory }}
-        run: hatch run unit-tests
+        run: hatch -v run unit-tests
 
   run-integration-tests:
     runs-on: ubuntu-24.04
@@ -278,4 +278,4 @@ jobs:
 
       - name: "Run tests"
         working-directory: ${{ inputs.hatch_directory }}
-        run: hatch run integration-tests
+        run: hatch -v run integration-tests
