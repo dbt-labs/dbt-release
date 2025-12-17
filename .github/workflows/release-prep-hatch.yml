@@ -144,8 +144,10 @@ jobs:
       - name: "Bump Version To ${{ inputs.version_number }}"
         if: inputs.needs_version_update == 'true'
         working-directory: ${{ inputs.hatch_directory }}
+        env:
+          VERSION_NUMBER: ${{ inputs.version_number }}
         run: |
-          hatch -v version ${{ inputs.version_number }}
+          hatch -v version "$VERSION_NUMBER"
           git status
 
       - name: "[Notification] Bump Version To ${{ inputs.version_number }}"
