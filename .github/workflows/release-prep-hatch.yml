@@ -272,7 +272,7 @@ jobs:
       - name: "Set Up Postgres (dbt-core)"
         if: ${{ contains(github.repository, 'dbt-labs/dbt-core') }}
         run: |
-          ./test/setup_db.sh
+          ./scripts/setup_db.sh
         env:
           PGHOST: localhost
           PGPORT: 5432

@@ -277,6 +277,7 @@ jobs:
       - name: "Set Up Postgres (dbt-core)"
         if: ${{ contains(github.repository, 'dbt-labs/dbt-core') }}
         run: |
+          # this code moved from test/setup_db.sh to scripts/setup_db.sh in version 1.11 when we started to use hatch
           ./test/setup_db.sh
         env:
           PGHOST: localhost
