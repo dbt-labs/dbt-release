@@ -145,7 +145,7 @@ jobs:
         if: inputs.needs_version_update == 'true'
         working-directory: ${{ inputs.hatch_directory }}
         env:
-          VERSION_NUMBER: ${{ inputs.version_number }}
+          VERSION_NUMBER: "${{ inputs.version_number }}"
         run: |
           hatch -v version "$VERSION_NUMBER"
           git status
