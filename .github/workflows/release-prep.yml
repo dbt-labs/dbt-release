@@ -87,14 +87,20 @@ jobs:
       - name: "[DEBUG] Print Variables"
         run: |
           # WORKFLOW INPUTS
-          echo The release version number:           ${{ inputs.version_number }}
-          echo The branch that we will release from: ${{ inputs.target_branch }}
-          echo Test run:                             ${{ inputs.test_run }}
-          echo Nightly release:                      ${{ inputs.nightly_release }}
-          echo Use hatch:                            ${{ inputs.use_hatch }}
+          echo The release version number:           $VERSION_NUMBER
+          echo The branch that we will release from: $TARGET_BRANCH
+          echo Test run:                             $TEST_RUN
+          echo Nightly release:                      $NIGHTLY_RELEASE
+          echo Use hatch:                            $USE_HATCH
           # ENVIRONMENT VARIABLES
           echo Python target version:                ${{ env.PYTHON_TARGET_VERSION }}
           echo Notification prefix:                  ${{ env.NOTIFICATION_PREFIX }}
+        env:
+          VERSION_NUMBER: ${{ inputs.version_number }}
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+          TEST_RUN: ${{ inputs.test_run }}
+          NIGHTLY_RELEASE: ${{ inputs.nightly_release }}
+          USE_HATCH: ${{ inputs.use_hatch }}
 
   run-common-setup:
     name: "Run common setup jobs"

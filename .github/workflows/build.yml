@@ -91,19 +91,28 @@ jobs:
       - name: "[DEBUG] Print Variables"
         run: |
           # WORKFLOW INPUTS
-          echo The last commit sha in the release: ${{ inputs.sha }}
-          echo The release version number:         ${{ inputs.version_number }}
-          echo The hatch directory:                ${{ inputs.hatch_directory }}
-          echo The changelog path:                 ${{ inputs.changelog_path }}
-          echo The build script path:              ${{ inputs.build_script_path }}
-          echo Use hatch:                          ${{ inputs.use_hatch }}
-          echo The package test command:           ${{ inputs.package_test_command }}
-          echo Test run:                           ${{ inputs.test_run }}
-          echo Nightly release:                    ${{ inputs.nightly_release }}
+          echo The last commit sha in the release: $SHA
+          echo The release version number:         $VERSION_NUMBER
+          echo The hatch directory:                $HATCH_DIRECTORY
+          echo The changelog path:                 $CHANGELOG_PATH
+          echo The build script path:              $BUILD_SCRIPT_PATH
+          echo Use hatch:                          $USE_HATCH
+          echo The package test command:           $PACKAGE_TEST_COMMAND
+          echo Test run:                           $TEST_RUN
+          echo Nightly release:                    $NIGHTLY_RELEASE
           # ENVIRONMENT VARIABLES
           echo GitHub artifact retention days:     ${{ env.ARTIFACT_RETENTION_DAYS }}
           echo Python target version:              ${{ env.PYTHON_TARGET_VERSION }}
           echo Notification prefix:                ${{ env.NOTIFICATION_PREFIX }}
+        env:
+          SHA: ${{ inputs.sha }}
+          VERSION_NUMBER: ${{ inputs.version_number }}
+          HATCH_DIRECTORY: ${{ inputs.hatch_directory }}
+          CHANGELOG_PATH: ${{ inputs.changelog_path }}
+          BUILD_SCRIPT_PATH: ${{ inputs.build_script_path }}
+          PACKAGE_TEST_COMMAND: ${{ inputs.package_test_command }}
+          TEST_RUN: ${{ inputs.test_run }}
+          NIGHTLY_RELEASE: ${{ inputs.nightly_release }}
 
   audit-version-changelog:
     # Make sure the changelog has been generated and the version is up to date
@@ -202,11 +211,14 @@ jobs:
     steps:
       - name: "Set Dist Directory"
         id: set-dist-dir
+        env:
+          USE_HATCH: ${{ inputs.use_hatch }}
+          HATCH_DIRECTORY: ${{ inputs.hatch_directory }}
         run: |
-          if [[ "${{ inputs.use_hatch }}" == "true" ]]; then
-            echo "dist_dir=${{ inputs.hatch_directory }}/dist" >> $GITHUB_OUTPUT
+          if [[ "$USE_HATCH" == "true" ]]; then
+            echo "dist_dir=${HATCH_DIRECTORY}/dist" >> "$GITHUB_OUTPUT"
           else
-            echo "dist_dir=dist" >> $GITHUB_OUTPUT
+            echo "dist_dir=dist" >> "$GITHUB_OUTPUT"
           fi
 
       - name: "Set up Python - ${{ env.PYTHON_TARGET_VERSION }}"

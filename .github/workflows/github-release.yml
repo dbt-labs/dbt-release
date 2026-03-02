@@ -67,12 +67,18 @@ jobs:
     steps:
       - name: "[DEBUG] Print Variables"
         run: |
-          echo The last commit sha in the release: ${{ inputs.sha }}
-          echo The release version number:         ${{ inputs.version_number }}
-          echo Expected Changelog path:            ${{ inputs.changelog_path }}
-          echo Test run:                           ${{ inputs.test_run }}
+          echo The last commit sha in the release: $SHA
+          echo The release version number:         $VERSION_NUMBER
+          echo Expected Changelog path:            $CHANGELOG_PATH
+          echo Test run:                           $TEST_RUN
           echo Repo link:                          ${{ env.REPO_LINK }}
           echo Notification prefix:                ${{ env.NOTIFICATION_PREFIX }}
+        env:
+          SHA: ${{ inputs.sha }}
+          VERSION_NUMBER: ${{ inputs.version_number }}
+          CHANGELOG_PATH: ${{ inputs.changelog_path }}
+          TEST_RUN: ${{ inputs.test_run }}
+          USE_HATCH: ${{ inputs.use_hatch }}
 
   check-release-exists:
     runs-on: ubuntu-latest
@@ -207,11 +213,13 @@ jobs:
       - name: "Set Dist Directory"
         id: set-dist-dir
         run: |
-          if [[ "${{ inputs.use_hatch }}" == "true" ]]; then
+          if [[ "$USE_HATCH" == "true" ]]; then
             echo "dist_dir=core/dist" >> $GITHUB_OUTPUT
           else
             echo "dist_dir=dist" >> $GITHUB_OUTPUT
           fi
+        env:
+          USE_HATCH: ${{ inputs.use_hatch }}
 
       - name: "Download Artifact ${{ inputs.version_number }}"
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # actions/download-artifact@v4

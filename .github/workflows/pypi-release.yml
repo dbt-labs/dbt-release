@@ -61,8 +61,10 @@ jobs:
     steps:
       - name: "Set Dist Directory"
         id: set-dist-dir
+        env:
+          USE_HATCH: ${{ inputs.use_hatch }}
         run: |
-          if [[ "${{ inputs.use_hatch }}" == "true" ]]; then
+          if [[ "$USE_HATCH" == "true" ]]; then
             echo "dist_dir=core/dist" >> $GITHUB_OUTPUT
           else
             echo "dist_dir=dist" >> $GITHUB_OUTPUT
@@ -70,10 +72,14 @@ jobs:
 
       - name: "[DEBUG] Print Variables"
         run: |
-          echo The release version number: ${{ inputs.version_number }}
-          echo Release to test PyPI:       ${{ inputs.test_run }}
-          echo Use hatch:                  ${{ inputs.use_hatch }}
+          echo The release version number: $VERSION_NUMBER
+          echo Release to test PyPI:       $TEST_RUN
+          echo Use hatch:                  $USE_HATCH
           echo Dist directory:             ${{ steps.set-dist-dir.outputs.dist_dir }}
+        env:
+          VERSION_NUMBER: ${{ inputs.version_number }}
+          TEST_RUN: ${{ inputs.test_run }}
+          USE_HATCH: ${{ inputs.use_hatch }}
 
   sanitize-package-name:
     runs-on: ubuntu-latest
