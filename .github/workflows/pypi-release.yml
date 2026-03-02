@@ -32,6 +32,11 @@ on:
         description: ""
         required: true
         type: boolean
+      use_hatch:
+        description: "Use hatch build tooling (dist in core/dist vs dist at root)"
+        required: false
+        type: boolean
+        default: false
     # pass through secrets for both PyPi Test and Prod so they're always there
     secrets:
       PYPI_API_TOKEN:
@@ -48,13 +53,27 @@ env:
   NOTIFICATION_PREFIX: "[PyPI Release]"
 
 jobs:
-  log-inputs:
+  setup:
+    name: "Log Inputs"
     runs-on: ubuntu-latest
+    outputs:
+      dist_dir: ${{ steps.set-dist-dir.outputs.dist_dir }}
     steps:
+      - name: "Set Dist Directory"
+        id: set-dist-dir
+        run: |
+          if [[ "${{ inputs.use_hatch }}" == "true" ]]; then
+            echo "dist_dir=core/dist" >> $GITHUB_OUTPUT
+          else
+            echo "dist_dir=dist" >> $GITHUB_OUTPUT
+          fi
+
       - name: "[DEBUG] Print Variables"
         run: |
           echo The release version number: ${{ inputs.version_number }}
           echo Release to test PyPI:       ${{ inputs.test_run }}
+          echo Use hatch:                  ${{ inputs.use_hatch }}
+          echo Dist directory:             ${{ steps.set-dist-dir.outputs.dist_dir }}
 
   sanitize-package-name:
     runs-on: ubuntu-latest
@@ -128,7 +147,7 @@ jobs:
 
   test-pypi-release:
     runs-on: ubuntu-latest
-    needs: [sanitize-package-name, check-package-exists-pypi]
+    needs: [setup, sanitize-package-name, check-package-exists-pypi]
     if: >-
       needs.check-package-exists-pypi.outputs.exists == 'false' &&
       inputs.test_run == true
@@ -148,11 +167,12 @@ jobs:
         with:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
+          packages-dir: ${{ needs.setup.outputs.dist_dir }}/
           attestations: false
 
   prod-pypi-release:
     runs-on: ubuntu-latest
-    needs: [sanitize-package-name, check-package-exists-pypi]
+    needs: [setup, sanitize-package-name, check-package-exists-pypi]
     if: >-
       needs.check-package-exists-pypi.outputs.exists == 'false' &&
       inputs.test_run == false
@@ -171,6 +191,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # pypa/gh-action-pypi-publish@v1.12.4
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: ${{ needs.setup.outputs.dist_dir }}/
           attestations: false
 
   validate-package-available-pypi:
