@@ -3,7 +3,7 @@
 #
 # Expected build artifact layout:
 #
-# ├── dist
+# ├── core/dist
 # │   ├── dbt-*.tar.gz
 # │   ├── dbt-*.whl
 # └── <release_notes>.md
@@ -101,17 +101,12 @@ jobs:
         working-directory: ${{ inputs.hatch_directory }}
         run: hatch -v run build:check-all
 
-      - name: "Copy Distributions to Root"
-        run: |
-          mkdir -p ./dist
-          cp -r ${{ inputs.hatch_directory }}/dist/* ./dist/
-
       - name: "Upload Build Artifact - ${{ inputs.version_number }}"
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
         with:
           name: ${{ inputs.version_number }}
           path: |
             ${{ inputs.changelog_path }}
-            ./dist/
-            !dist/dbt-${{ inputs.version_number }}.tar.gz
+            ${{ inputs.hatch_directory }}/dist/
+            !${{ inputs.hatch_directory }}/dist/dbt-${{ inputs.version_number }}.tar.gz
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
