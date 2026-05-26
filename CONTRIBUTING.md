@@ -62,13 +62,13 @@ A deep understanding of these tools in not required to effectively contribute to
 ## Running `dbt-release` in development
 
 - Install pre-commit ([docs](https://pre-commit.com/#installation))
-- Use the following [guidelines](https://github.com/dbt-labs/dbt-core/blob/main/.github/_README.md) during development
+- Use the following [guidelines](https://github.com/dbt-labs/dbt-core/blob/1.latest/.github/_README.md) during development
 - Each workflow should be self-documented
 
 
 ### Running `dbt-release`
 
-Workflows in this repository are all triggered with a `workflow_call` so to test your changes you will need to set up a workflow in another repository to trigger your the modified workflow on your branch or fork.  [release.yml](https://github.com/dbt-labs/dbt-core/blob/main/.github/workflows/release.yml) is what we use to trigger all the workflows in this repository and is a good example of how to trigger them.
+Workflows in this repository are all triggered with a `workflow_call` so to test your changes you will need to set up a workflow in another repository to trigger your the modified workflow on your branch or fork.  [release.yml](https://github.com/dbt-labs/dbt-core/blob/1.latest/.github/workflows/release.yml) is what we use to trigger all the workflows in this repository and is a good example of how to trigger them.
 
 
 ## Testing
@@ -104,7 +104,7 @@ To use workflows inside other workflows, you can use the `main` branch or specif
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 ```
 
-**Example**: <https://github.com/dbt-labs/dbt-core/blob/main/.github/workflows/release.yml>
+**Example**: <https://github.com/dbt-labs/dbt-core/blob/1.latest/.github/workflows/release.yml>
 
 ## Debugging
 

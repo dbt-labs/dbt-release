@@ -247,7 +247,7 @@ jobs:
 
     uses: "dbt-labs/dbt-postgres/.github/workflows/integration-tests.yml@main"
     with:
-      dbt_core_branch: "main"
+      dbt_core_branch: "1.latest"
       dbt_adapters_branch: "main"
 
 
