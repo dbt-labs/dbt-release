@@ -276,7 +276,7 @@ jobs:
           python-version: ${{ env.PYTHON_TARGET_VERSION }}
 
       - name: "Set Up Postgres (dbt-core)"
-        if: ${{ contains(github.repository, 'dbt-labs/dbt-core') }}
+        if: ${{ github.repository == 'dbt-labs/dbt-core' || github.repository == 'dbt-labs/dbt' }}
         run: |
           # this code moved from test/setup_db.sh to scripts/setup_db.sh in version 1.11 when we started to use hatch
           ./test/setup_db.sh

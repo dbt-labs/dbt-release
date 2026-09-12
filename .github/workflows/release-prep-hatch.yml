@@ -271,7 +271,7 @@ jobs:
           python -m pip install hatch
 
       - name: "Set Up Postgres (dbt-core)"
-        if: ${{ contains(github.repository, 'dbt-labs/dbt-core') }}
+        if: ${{ github.repository == 'dbt-labs/dbt-core' || github.repository == 'dbt-labs/dbt' }}
         run: |
           ./scripts/setup_db.sh
         env:
