@@ -12,7 +12,7 @@
 #  After successfully releasing to GitHub
 #
 # Assumptions
-#  1. The name of the repository is the name of the package on PyPI
+#  1. If `package_name` is not provided, the name of the repository is the name of the package on PyPI
 #
 # Validation Checks
 #  1. If the provided version is not uploaded to PyPI yet, release it.
@@ -37,6 +37,10 @@ on:
         required: false
         type: boolean
         default: false
+      package_name:
+        description: "The name of the package on PyPI. If not provided, defaults to the repository name."
+        required: false
+        type: string
     # pass through secrets for both PyPi Test and Prod so they're always there
     secrets:
       PYPI_API_TOKEN:
@@ -90,10 +94,17 @@ jobs:
     steps:
       - name: "Sanitize Package Name"
         id: package-name
+        env:
+          PACKAGE_NAME: ${{ inputs.package_name }}
         run: |
-          repo_name=${{ github.event.repository.name }}
-          test_suffix="-release-test"
-          name=${repo_name%"$test_suffix"}
+          if [[ -n "$PACKAGE_NAME" ]]
+          then
+            name="$PACKAGE_NAME"
+          else
+            repo_name=${{ github.event.repository.name }}
+            test_suffix="-release-test"
+            name=${repo_name%"$test_suffix"}
+          fi
           echo "name=$name" >> $GITHUB_OUTPUT
 
   check-package-exists-pypi:
